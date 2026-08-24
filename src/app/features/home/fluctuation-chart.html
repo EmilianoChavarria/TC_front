@@ -9,7 +9,7 @@
 
     <div class="min-w-0 flex-1">
       <div
-        class="relative h-64"
+        class="relative h-64 ml-2"
         (mousemove)="onMove($event)"
         (mouseleave)="onLeave()"
         role="img"
@@ -104,7 +104,7 @@
       </div>
 
       <!-- Escala horizontal -->
-      <div class="relative mt-2 h-4">
+      <div class="relative mt-2 h-4 ml-2">
         @for (point of plotted(); track point.index) {
           @if (showLabel(point.index)) {
             <span
