@@ -1,0 +1,193 @@
+<header class="mb-6">
+  <h1 class="text-2xl font-bold text-brand-500">Resumen del Tipo de Cambio</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-600">
+    Proceso automático de recuperación de la publicación de Banxico y cálculo del tipo de cambio.
+    @if (today(); as card) {
+      Información al {{ card.dateLabel }}.
+    }
+  </p>
+</header>
+
+@if (errorMessage(); as message) {
+  <div class="mb-5">
+    <app-alert variant="error" [message]="message" />
+  </div>
+}
+
+@if (loading()) {
+  <div class="grid animate-pulse gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+    <div class="h-64 rounded-lg bg-white"></div>
+    <div class="space-y-6">
+      <div class="h-36 rounded-lg bg-white"></div>
+      <div class="h-24 rounded-lg bg-white"></div>
+    </div>
+  </div>
+} @else if (data()) {
+  <div class="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+    <!-- ---------------------------------------------- tipo de cambio vigente -->
+    <section class="rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-5">
+      @if (today(); as card) {
+        <h2 class="text-base font-semibold text-brand-700">Tipo de Cambio vigente hoy</h2>
+        <p class="mt-0.5 text-sm text-ink-500">{{ card.dateLabel }}</p>
+
+        @if (card.available) {
+          <div class="mt-5 flex w-full flex-wrap items-end justify-between gap-4">
+            <div class="flex flex-wrap items-end gap-3">
+              <span class="text-5xl leading-none font-bold tracking-tight text-ink-900">
+                {{ card.effectiveRate }}
+              </span>
+              <span class="pb-1 text-lg text-ink-500">{{ data()?.currency }}</span>
+
+              @if (card.change; as change) {
+                <span
+                  class="mb-1 inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-sm font-medium"
+                  [class]="
+                    change.direction === 'up'
+                      ? 'border-success-600/30 bg-emerald-50 text-success-600'
+                      : change.direction === 'down'
+                        ? 'border-danger-600/30 bg-red-50 text-danger-600'
+                        : 'border-hairline bg-white text-ink-500'
+                  "
+                >
+                  {{ changeLabel() }} vs. {{ change.comparedTo | date: 'dd/MM/yyyy' }}
+                </span>
+              }
+            </div>
+
+            <div class="text-right">
+              <p class="text-base font-semibold text-brand-700">Factor aplicado</p>
+              <p
+                class="mt-2 leading-none font-bold tracking-tight text-ink-900"
+                [class.text-5xl]="card.factorApplied"
+                [class.text-2xl]="!card.factorApplied"
+              >
+                {{ card.factorApplied ? card.factorValue : 'Sin factor' }}
+              </p>
+            </div>
+          </div>
+
+          <div class="mt-6 grid gap-5 border-t border-brand-200 pt-5 sm:grid-cols-2">
+            <div>
+              <p class="text-xs text-ink-500">Publicación Banxico</p>
+              <p class="mt-1 text-base text-ink-900">{{ card.publishedRate ?? '—' }}</p>
+              @if (card.publishedDate) {
+                <p class="text-xs text-ink-400">{{ card.publishedDate | date: 'dd/MM/yyyy' }}</p>
+              }
+            </div>
+
+            <div>
+              <p class="text-xs text-ink-500">Origen del valor</p>
+              <span
+                class="mt-1 inline-flex rounded-md border px-2.5 py-1 text-sm"
+                [class]="
+                  card.source === 'manual'
+                    ? 'border-brand-300 bg-white text-warning-600'
+                    : 'border-success-600/30 bg-emerald-50 text-success-600'
+                "
+              >
+                {{ card.sourceLabel }}
+              </span>
+            </div>
+          </div>
+        } @else {
+          <p class="mt-6 text-sm text-ink-600">
+            Todavía no hay tipo de cambio para hoy. El proceso automático lo genera con la
+            publicación del día hábil anterior.
+          </p>
+        }
+      }
+    </section>
+
+    <!-- ------------------------------------------------- día hábil siguiente -->
+    <div class="space-y-6">
+      <section class="card px-5 py-4">
+        @if (nextDay(); as card) {
+          <div class="flex flex-row w-full items-center justify-between">
+            <div class="flex flex-col">
+              <h2 class="card-title">Día hábil siguiente</h2>
+              <p class="mt-0.5 text-sm text-ink-500">{{ card.dateLabel }}</p>
+            </div>
+            <a class="flex flex-row gap-x-2 items-center justify-center h-fit text-brand-700 hover:text-brand-500" routerLink="/tipo-de-cambio">
+              Gestionar
+              <app-icon name="arrowupright" [size]="15" />
+            </a>
+          </div>
+
+          @if (card.available) {
+            <p class="mt-4 text-3xl font-bold tracking-tight text-ink-900">
+              {{ card.effectiveRate }}
+            </p>
+
+            <p class="mt-3 flex items-center gap-2 text-sm text-ink-600">
+              <span class="text-ink-400"><app-icon name="clock" [size]="15" /></span>
+              Cálculo generado el {{ card.calculatedAt | date: 'dd/MM/yyyy HH:mm' }} h
+            </p>
+
+            @if (card.source === 'manual') {
+              <p class="mt-1 text-sm text-warning-600">{{ card.sourceLabel }}</p>
+            }
+          } @else {
+            <p class="mt-4 text-sm text-ink-600">
+              Pendiente: se calcula con la publicación de hoy.
+            </p>
+          }
+        }
+      </section>
+
+      <div class="grid gap-6 sm:grid-cols-2">
+        <section class="card px-5 py-4">
+          @if (manualEntries(); as manual) {
+            <p class="text-sm text-ink-600">Registros manuales ({{ manual.days }} días)</p>
+            <p class="mt-2 text-3xl font-bold text-ink-900">{{ manual.total }}</p>
+          }
+        </section>
+
+        <section class="card px-5 py-4">
+          @if (process(); as status) {
+            <p class="text-sm text-ink-600">Estado del proceso automático</p>
+            <p
+              class="mt-2 flex items-center gap-2 text-base font-semibold"
+              [class]="
+                status.status === 'executed'
+                  ? 'text-success-600'
+                  : status.status === 'failed'
+                    ? 'text-danger-600'
+                    : 'text-ink-500'
+              "
+            >
+              <app-icon [name]="status.status === 'executed' ? 'check' : 'alert'" [size]="17" />
+              {{ status.statusLabel }}
+              @if (status.ranAt) {
+                {{ status.ranAt | date: 'HH:mm' }} h
+              }
+            </p>
+
+            @if (status.ranAt && !status.ranToday) {
+              <p class="mt-1 text-xs text-warning-600">
+                Última corrida: {{ status.ranAt | date: 'dd/MM/yyyy' }}
+              </p>
+            }
+
+            @if (status.error) {
+              <p class="mt-1 text-xs text-danger-600">{{ status.error }}</p>
+            }
+          }
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ------------------------------------------------------------- gráfica -->
+  <section class="card mt-6 p-6">
+    @if (fluctuation(); as series) {
+      <h2 class="card-title">Fluctuación de los últimos {{ series.days }} días</h2>
+      <p class="mt-1 text-sm text-ink-500">
+        Línea naranja: tipo de cambio calculado · Línea gris punteada: publicación Banxico
+      </p>
+
+      <div class="mt-6">
+        <app-fluctuation-chart [points]="series.points" />
+      </div>
+    }
+  </section>
+}
