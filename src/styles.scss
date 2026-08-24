@@ -1,0 +1,85 @@
+@use 'tailwindcss';
+
+/* Paleta y tokens del portal. Tailwind v4 declara el tema en CSS. */
+@theme {
+  --color-brand-50: #fff7ed;
+  --color-brand-100: #ffedd5;
+  --color-brand-200: #fed7aa;
+  --color-brand-300: #fdba74;
+  --color-brand-400: #fb923c;
+  --color-brand-500: #ff8200;
+  --color-brand-600: #ea7100;
+  --color-brand-700: #c25e00;
+
+  --color-ink-400: #9ca3af;
+  --color-ink-500: #6b7280;
+  --color-ink-600: #4b5563;
+  --color-ink-700: #374151;
+  --color-ink-900: #111827;
+
+  --color-surface: #ffffff;
+  --color-canvas: #f9fafb;
+  --color-hairline: #e5e7eb;
+
+  --color-success-600: #059669;
+  --color-danger-600: #dc2626;
+  --color-warning-600: #b45309;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  @apply bg-canvas text-ink-900 antialiased;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* ---------------------------------------------------------------- primitivas */
+
+@layer components {
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-ink-700;
+  }
+
+  .field-input {
+    @apply w-full rounded-md border border-hairline bg-white px-3 py-2.5 text-[15px] text-ink-900 transition outline-none placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25 disabled:cursor-not-allowed disabled:bg-canvas disabled:text-ink-500;
+  }
+
+  .field-input-invalid {
+    @apply border-danger-600 focus:border-danger-600 focus:ring-danger-600/20;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-sm text-danger-600;
+  }
+
+  /*
+   * Tailwind v4 no permite @apply de clases propias, así que cada variante
+   * repite la base en lugar de componer sobre .btn.
+   */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-5 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-brand-500 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-600 focus-visible:ring-2 focus-visible:ring-brand-500/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 rounded-md bg-danger-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-red-700 focus-visible:ring-2 focus-visible:ring-danger-600/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-md border border-hairline bg-white px-5 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-canvas disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .card {
+    @apply rounded-lg border border-hairline bg-white;
+  }
+
+  .card-title {
+    @apply text-xs font-semibold tracking-wide text-ink-700 uppercase;
+  }
+}
