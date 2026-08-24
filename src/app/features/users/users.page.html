@@ -1,0 +1,367 @@
+<header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-brand-500">Gestión de Usuarios</h1>
+    <p class="mt-1 max-w-2xl text-sm text-ink-600">
+      Cuentas del portal. El alta envía por correo una contraseña temporal que el usuario debe
+      cambiar en su primer acceso.
+    </p>
+  </div>
+
+  <button type="button" class="btn-primary" (click)="openForm()">+ Nuevo usuario</button>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+<!-- --------------------------------------------------------------- listado -->
+<section class="card">
+  <div class="flex flex-wrap items-end gap-3 border-b border-hairline px-6 py-4">
+    <div class="mr-auto">
+      <h2 class="card-title">Usuarios registrados</h2>
+      <p class="mt-1 text-sm text-ink-500">{{ total() }} cuenta(s)</p>
+    </div>
+
+    <div>
+      <label class="field-label" for="search">Buscar</label>
+      <input
+        id="search"
+        type="search"
+        placeholder="Nombre o correo"
+        class="field-input w-56"
+        (change)="applySearch($any($event.target).value)"
+      />
+    </div>
+
+    <div>
+      <label class="field-label" for="statusFilter">Estado</label>
+      <select
+        id="statusFilter"
+        class="field-input w-44"
+        (change)="changeStatus($any($event.target).value)"
+      >
+        <option value="active">Activos</option>
+        <option value="inactive">Inactivos</option>
+        <option value="blocked">Bloqueados</option>
+        <option value="all">Todos</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="field-label" for="roleFilter">Rol</label>
+      <select
+        id="roleFilter"
+        class="field-input w-44"
+        (change)="changeRole($any($event.target).value)"
+      >
+        <option value="">Todos</option>
+        <option value="SUPERADMIN">Superadministrador</option>
+        <option value="ADMIN">Administrador</option>
+        <option value="USER">Usuario</option>
+      </select>
+    </div>
+  </div>
+
+  @if (listError(); as message) {
+    <div class="px-6 py-4">
+      <app-alert variant="error" [message]="message" />
+    </div>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[880px] text-left text-sm">
+      <thead class="border-b border-hairline bg-canvas text-xs tracking-wide text-ink-600 uppercase">
+        <tr>
+          <th class="px-6 py-3 font-semibold">Usuario</th>
+          <th class="px-6 py-3 font-semibold">Rol</th>
+          <th class="px-6 py-3 font-semibold">Estado</th>
+          <th class="px-6 py-3 font-semibold">Último acceso</th>
+          <th class="px-6 py-3 text-right font-semibold">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-hairline">
+        @for (user of rows(); track user.uuid) {
+          <tr class="align-middle" [class.opacity-60]="!user.isActive">
+            <td class="px-6 py-3">
+              <p class="font-medium text-ink-900">{{ user.fullName }}</p>
+              <p class="text-xs text-ink-500">{{ user.email }}</p>
+              @if (user.mustChangePassword) {
+                <p class="mt-1 text-xs text-warning-600">Pendiente de cambiar contraseña</p>
+              }
+            </td>
+
+            <td class="px-6 py-3 text-ink-700">{{ roleLabel(user.roleName) }}</td>
+
+            <td class="px-6 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                [class]="
+                  user.status === 'active'
+                    ? 'bg-emerald-50 text-success-600'
+                    : user.status === 'blocked'
+                      ? 'bg-red-50 text-danger-600'
+                      : 'bg-canvas text-ink-500'
+                "
+              >
+                {{ user.statusLabel }}
+              </span>
+            </td>
+
+            <td class="px-6 py-3 text-ink-600">
+              {{ user.lastLoginAt ? (user.lastLoginAt | date: 'dd/MM/yyyy HH:mm') : '—' }}
+            </td>
+
+            <td class="px-6 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  class="btn-ghost px-3 py-1.5"
+                  (click)="edit(user)"
+                  [disabled]="busyUuid() === user.uuid"
+                >
+                  Editar
+                </button>
+
+                <button
+                  type="button"
+                  class="btn-ghost px-3 py-1.5"
+                  (click)="resetPassword(user)"
+                  [disabled]="busyUuid() === user.uuid || !user.isActive"
+                  title="Enviar una contraseña temporal nueva"
+                >
+                  <app-icon name="lock" [size]="15" />
+                </button>
+
+                @if (user.isActive) {
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5 text-danger-600"
+                    (click)="deactivate(user)"
+                    [disabled]="busyUuid() === user.uuid || user.uuid === currentUuid()"
+                    [title]="
+                      user.uuid === currentUuid()
+                        ? 'No puede dar de baja su propia cuenta'
+                        : 'Dar de baja'
+                    "
+                  >
+                    Baja
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5"
+                    (click)="restore(user)"
+                    [disabled]="busyUuid() === user.uuid"
+                  >
+                    Reactivar
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="5" class="px-6 py-10 text-center text-ink-500">
+              {{ loading() ? 'Cargando…' : 'No hay usuarios con esos filtros.' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (lastPage() > 1) {
+    <div class="flex items-center justify-between border-t border-hairline px-6 py-3 text-sm">
+      <span class="text-ink-500">Página {{ currentPage() }} de {{ lastPage() }}</span>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="btn-ghost px-3 py-1.5"
+          (click)="goToPage(currentPage() - 1)"
+          [disabled]="currentPage() === 1"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="btn-ghost px-3 py-1.5"
+          (click)="goToPage(currentPage() + 1)"
+          [disabled]="currentPage() === lastPage()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  }
+</section>
+
+<!-- --------------------------------------------------------------- edición -->
+@if (editing(); as user) {
+  <app-modal
+    title="Editar usuario"
+    [subtitle]="user.email"
+    (closed)="closeEdit()"
+    (confirmed)="saveEdit()"
+  >
+    <form [formGroup]="editForm" (ngSubmit)="saveEdit()" class="space-y-5" novalidate>
+      @if (editError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div>
+        <label class="field-label" for="editName">Nombre completo</label>
+        <input
+          id="editName"
+          type="text"
+          formControlName="fullName"
+          class="field-input"
+          [class.field-input-invalid]="editFieldError('fullName')"
+        />
+        @if (editFieldError('fullName'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="editEmail">Correo electrónico</label>
+        <input
+          id="editEmail"
+          type="email"
+          formControlName="email"
+          class="field-input"
+          [class.field-input-invalid]="editFieldError('email')"
+        />
+        @if (editFieldError('email'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="editRole">Rol</label>
+        @if (canChooseRole() && user.uuid !== currentUuid()) {
+          <select id="editRole" formControlName="roleName" class="field-input">
+            <option value="USER">Usuario</option>
+            <option value="ADMIN">Administrador</option>
+            <option value="SUPERADMIN">Superadministrador</option>
+          </select>
+          <p class="mt-1.5 text-xs text-ink-500">
+            De superadministrador y administrador sólo puede haber una cuenta activa.
+          </p>
+        } @else {
+          <p class="rounded-md border border-hairline bg-canvas px-4 py-3 text-sm text-ink-600">
+            {{ roleLabel(user.roleName) }}
+            @if (user.uuid === currentUuid()) {
+              · no puede cambiar su propio rol
+            }
+          </p>
+        }
+      </div>
+    </form>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeEdit()">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="saveEdit()">
+        {{ saving() ? 'Guardando…' : 'Guardar cambios' }}
+      </button>
+    </div>
+  </app-modal>
+}
+
+<!-- --------------------------------------------------------- confirmaciones -->
+@if (confirming(); as pending) {
+  <app-modal
+    size="sm"
+    [title]="pending.title"
+    [confirmLabel]="pending.confirmLabel"
+    [confirmVariant]="pending.variant"
+    (closed)="cancelConfirm()"
+    (confirmed)="acceptConfirm()"
+  >
+    <p class="text-sm text-ink-600">{{ pending.message }}</p>
+  </app-modal>
+}
+
+<!-- ------------------------------------------------------------------ alta -->
+@if (formOpen()) {
+  <app-modal
+    title="Nuevo usuario"
+    subtitle="Recibirá por correo una contraseña temporal"
+    (closed)="closeForm()"
+    (confirmed)="submit()"
+  >
+    <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-5" novalidate>
+      @if (createError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div>
+        <label class="field-label" for="fullName">Nombre completo</label>
+        <input
+          id="fullName"
+          type="text"
+          formControlName="fullName"
+          placeholder="Nombre y apellidos"
+          class="field-input"
+          [class.field-input-invalid]="error('fullName')"
+        />
+        @if (error('fullName'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="userEmail">Correo electrónico</label>
+        <input
+          id="userEmail"
+          type="email"
+          formControlName="email"
+          placeholder="nombre@timken.com"
+          class="field-input"
+          [class.field-input-invalid]="error('email')"
+        />
+        @if (error('email'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <span class="field-label">Rol</span>
+
+        @if (canChooseRole()) {
+          <div class="space-y-2">
+            @for (option of roleOptions(); track option.value) {
+              <label
+                class="flex cursor-pointer items-start gap-3 rounded-md border border-hairline px-4 py-3 transition hover:bg-canvas"
+              >
+                <input
+                  type="radio"
+                  [value]="option.value"
+                  formControlName="roleName"
+                  class="mt-1 accent-brand-500"
+                />
+                <span>
+                  <span class="block text-sm font-medium text-ink-900">{{ option.label }}</span>
+                  <span class="block text-xs text-ink-500">{{ option.description }}</span>
+                </span>
+              </label>
+            }
+          </div>
+        } @else {
+          <p class="rounded-md border border-hairline bg-canvas px-4 py-3 text-sm text-ink-600">
+            La cuenta se dará de alta con rol <span class="font-medium text-ink-900">Usuario</span>.
+          </p>
+        }
+      </div>
+    </form>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeForm()">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="creating()" (click)="submit()">
+        {{ creating() ? 'Registrando…' : 'Registrar usuario' }}
+      </button>
+    </div>
+  </app-modal>
+}
