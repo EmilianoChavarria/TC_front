@@ -1,0 +1,271 @@
+<header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-brand-500">Administración de Factores</h1>
+    <p class="mt-1 max-w-2xl text-sm text-ink-600">
+      Tabla de factores por rango de la publicación de Banxico. El sistema identifica el rango en el
+      que cae la publicación del día y aplica el factor correspondiente al cálculo final.
+    </p>
+  </div>
+
+  <button type="button" class="btn-primary" (click)="openCreate()">+ Nuevo factor</button>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+<section class="card">
+  <div class="flex flex-wrap items-start justify-between gap-3 border-b border-hairline px-6 py-4">
+    <div>
+      <h2 class="card-title">Rangos y factores</h2>
+      <p class="mt-1 text-sm text-ink-500">
+        El límite inferior es inclusivo y el superior exclusivo. Los rangos vigentes no pueden
+        traslaparse.
+      </p>
+    </div>
+
+    <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
+      <input
+        type="checkbox"
+        class="accent-brand-500"
+        [checked]="includeDeleted()"
+        (change)="toggleDeleted($any($event.target).checked)"
+      />
+      Ver eliminados
+    </label>
+  </div>
+
+  @if (listError(); as message) {
+    <div class="px-6 py-4"><app-alert variant="error" [message]="message" /></div>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[760px] text-left text-sm">
+      <thead
+        class="border-b border-hairline bg-canvas text-xs tracking-wide text-ink-600 uppercase"
+      >
+        <tr>
+          <th class="px-6 py-3 font-semibold">Clave</th>
+          <th class="px-6 py-3 font-semibold">Desde</th>
+          <th class="px-6 py-3 font-semibold">Hasta</th>
+          <th class="px-6 py-3 font-semibold">Factor</th>
+          <th class="px-6 py-3 font-semibold">Estado</th>
+          <th class="px-6 py-3 font-semibold">Última modificación</th>
+          <th class="px-6 py-3 text-right font-semibold">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-hairline">
+        @for (factor of factors(); track factor.uuid) {
+          <tr [class.opacity-60]="factor.isDeleted">
+            <td class="px-6 py-3 text-ink-700">{{ factor.code }}</td>
+            <td class="px-6 py-3 text-ink-700">{{ factor.rangeFrom }}</td>
+            <td class="px-6 py-3 text-ink-700">{{ factor.rangeTo }}</td>
+            <td class="px-6 py-3 font-semibold text-ink-900">{{ factor.factor }}</td>
+
+            <td class="px-6 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                [class]="
+                  factor.isDeleted ? 'bg-canvas text-ink-500' : 'bg-emerald-50 text-success-600'
+                "
+              >
+                {{ factor.statusLabel }}
+              </span>
+            </td>
+
+            <td class="px-6 py-3">
+              <p class="text-ink-700">{{ factor.updatedBy ?? 'Proceso automático' }}</p>
+              <p class="text-xs text-ink-500">
+                {{ factor.updatedAt | date: 'dd/MM/yyyy HH:mm' }} h
+              </p>
+            </td>
+
+            <td class="px-6 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  class="btn-ghost px-2.5 py-1.5"
+                  (click)="openHistory(factor)"
+                  aria-label="Ver historial"
+                  title="Ver historial"
+                >
+                  <app-icon name="history" [size]="15" />
+                </button>
+
+                @if (factor.isDeleted) {
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5"
+                    (click)="restore(factor)"
+                    [disabled]="busyUuid() === factor.uuid"
+                  >
+                    Restaurar
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5"
+                    (click)="openEdit(factor)"
+                    [disabled]="busyUuid() === factor.uuid"
+                  >
+                    <app-icon name="edit" [size]="15" />
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5 text-danger-600"
+                    (click)="askDelete(factor)"
+                    [disabled]="busyUuid() === factor.uuid"
+                    aria-label="Eliminar factor"
+                  >
+                    <app-icon name="trash" [size]="15" />
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="7" class="px-6 py-10 text-center text-ink-500">
+              {{
+                loading()
+                  ? 'Cargando…'
+                  : 'Aún no hay factores registrados. Sin factores, el tipo de cambio vigente es la publicación tal cual.'
+              }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- -------------------------------------------------------------- alta/edición -->
+@if (formOpen()) {
+  <app-modal
+    [title]="modalTitle()"
+    subtitle="El límite inferior es inclusivo y el superior exclusivo"
+    (closed)="closeForm()"
+    (confirmed)="save()"
+  >
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5" novalidate>
+      @if (formError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div class="grid gap-5 sm:grid-cols-2">
+        <div>
+          <label class="field-label" for="rangeFrom">Desde</label>
+          <input
+            id="rangeFrom"
+            type="number"
+            step="0.0001"
+            formControlName="rangeFrom"
+            class="field-input"
+            [class.field-input-invalid]="error('rangeFrom')"
+          />
+          @if (error('rangeFrom'); as message) {
+            <p class="field-error">{{ message }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="field-label" for="rangeTo">Hasta</label>
+          <input
+            id="rangeTo"
+            type="number"
+            step="0.0001"
+            formControlName="rangeTo"
+            class="field-input"
+            [class.field-input-invalid]="error('rangeTo')"
+          />
+          @if (error('rangeTo'); as message) {
+            <p class="field-error">{{ message }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="sm:w-1/2">
+        <label class="field-label" for="factor">Factor</label>
+        <input
+          id="factor"
+          type="number"
+          step="0.001"
+          placeholder="1.000"
+          formControlName="factor"
+          class="field-input"
+          [class.field-input-invalid]="error('factor')"
+        />
+        @if (error('factor'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+    </form>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeForm()">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Guardando…' : 'Guardar factor' }}
+      </button>
+    </div>
+  </app-modal>
+}
+
+<!-- ------------------------------------------------------------- eliminación -->
+@if (deleting(); as factor) {
+  <app-modal
+    size="sm"
+    title="Eliminar factor"
+    confirmLabel="Eliminar"
+    confirmVariant="danger"
+    (closed)="cancelDelete()"
+    (confirmed)="confirmDelete()"
+  >
+    <p class="text-sm text-ink-600">
+      La clave {{ factor.code }} ({{ factor.rangeFrom }} a {{ factor.rangeTo }}) dejará de
+      aplicarse. Es una baja lógica: los cálculos que ya usaron este factor conservan su valor.
+    </p>
+  </app-modal>
+}
+
+<!-- --------------------------------------------------------------- historial -->
+@if (historyOf(); as factor) {
+  <app-modal
+    [title]="'Historial · Clave ' + factor.code"
+    [subtitle]="
+      'Rango ' + factor.rangeFrom + ' a ' + factor.rangeTo + ' · factor vigente ' + factor.factor
+    "
+    confirmLabel="Cerrar"
+    (closed)="closeHistory()"
+    (confirmed)="closeHistory()"
+  >
+    @if (historyLoading()) {
+      <p class="py-4 text-sm text-ink-500">Cargando historial…</p>
+    } @else {
+      <ol class="space-y-5">
+        @for (entry of history(); track entry.uuid) {
+          <li class="flex gap-3">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-ink-900">{{ entry.title }}</p>
+              <p class="text-sm break-words text-ink-600">{{ entry.detail }}</p>
+              <p class="mt-0.5 text-xs text-ink-500">
+                {{ entry.actorName }} · {{ entry.occurredAt | date: 'dd/MM/yyyy HH:mm' }} h
+              </p>
+            </div>
+          </li>
+        } @empty {
+          <li class="text-sm text-ink-500">Sin movimientos registrados.</li>
+        }
+      </ol>
+    }
+
+    <div modalFooter>
+      <button type="button" class="btn-primary" (click)="closeHistory()">Cerrar</button>
+    </div>
+  </app-modal>
+}
