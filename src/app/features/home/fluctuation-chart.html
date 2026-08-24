@@ -1,0 +1,125 @@
+@if (plotted().length) {
+  <div class="flex gap-3">
+    <!-- Escala vertical -->
+    <div class="flex w-14 shrink-0 flex-col justify-between py-1 text-right text-xs text-ink-400">
+      @for (value of axisValues(); track $index) {
+        <span>{{ value }}</span>
+      }
+    </div>
+
+    <div class="min-w-0 flex-1">
+      <div
+        class="relative h-64"
+        (mousemove)="onMove($event)"
+        (mouseleave)="onLeave()"
+        role="img"
+        aria-label="Fluctuación del tipo de cambio de los últimos días"
+      >
+        <div class="absolute inset-0" [style.clip-path]="reveal()">
+          <svg
+            class="absolute inset-0 h-full w-full overflow-visible"
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            aria-hidden="true"
+          >
+            <!-- Retícula -->
+            @for (value of axisValues(); track $index) {
+              <line
+                [attr.x1]="0"
+                [attr.x2]="100"
+                [attr.y1]="$index * 50"
+                [attr.y2]="$index * 50"
+                stroke="#e5e7eb"
+                stroke-width="1"
+                vector-effect="non-scaling-stroke"
+              />
+            }
+
+            <!-- Publicación de Banxico -->
+            <path
+              [attr.d]="publishedPath()"
+              fill="none"
+              stroke="#9ca3af"
+              stroke-width="1.5"
+              stroke-dasharray="4 4"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              vector-effect="non-scaling-stroke"
+            />
+
+            <!-- Tipo de cambio calculado -->
+            <path
+              [attr.d]="effectivePath()"
+              fill="none"
+              stroke="#ff8200"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              vector-effect="non-scaling-stroke"
+            />
+          </svg>
+
+          <!-- Puntos -->
+          @for (point of plotted(); track point.index) {
+            @if (point.effectiveY !== null) {
+              <span
+                class="pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-brand-500 transition-all"
+                [class]="
+                  hovered() === point.index ? 'h-2.5 w-2.5 ring-2 ring-brand-200' : 'h-1.5 w-1.5'
+                "
+                [style.left.%]="point.x"
+                [style.top.%]="point.effectiveY"
+              ></span>
+            }
+          }
+        </div>
+
+        <!-- Guía vertical del punto activo -->
+        @if (active(); as point) {
+          <div
+            class="pointer-events-none absolute top-0 bottom-0 w-px bg-ink-400/60"
+            [style.left.%]="point.x"
+          ></div>
+        }
+
+        <!-- Detalle del punto -->
+        @if (active(); as point) {
+          <div
+            class="pointer-events-none absolute z-10 min-w-44 rounded-md border border-hairline bg-white px-3 py-2 shadow-lg"
+            [style.left.%]="point.x"
+            [style.top.%]="65"
+            [style.transform]="'translateX(' + tooltipShift(point.x) + ')'"
+          >
+            <p class="text-xs font-semibold text-ink-900">{{ point.date }}</p>
+            <p class="mt-1 text-xs text-ink-500">
+              Publicación Banxico :
+              <span class="text-ink-700">{{ point.publishedRate ?? '—' }}</span>
+            </p>
+            <p class="text-xs text-brand-600">
+              Tipo de Cambio calculado :
+              <span class="font-medium">{{ point.effectiveRate ?? '—' }}</span>
+            </p>
+          </div>
+        }
+      </div>
+
+      <!-- Escala horizontal -->
+      <div class="relative mt-2 h-4">
+        @for (point of plotted(); track point.index) {
+          @if (showLabel(point.index)) {
+            <span
+              class="absolute -translate-x-1/2 text-[11px] whitespace-nowrap text-ink-400"
+              [style.left.%]="point.x"
+            >
+              {{ point.label }}
+            </span>
+          }
+        }
+      </div>
+    </div>
+  </div>
+} @else {
+  <p class="py-10 text-center text-sm text-ink-500">
+    Aún no hay tipos de cambio registrados en el periodo.
+  </p>
+}
