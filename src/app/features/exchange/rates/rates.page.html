@@ -1,0 +1,336 @@
+<header class="mb-6">
+  <h1 class="text-2xl font-bold text-brand-500">Gestión de Tipo de Cambio</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-600">
+    Registra o actualiza manualmente el tipo de cambio del día en curso o del día hábil siguiente.
+    El sistema conserva el valor calculado y el valor capturado, junto con el usuario, la fecha y
+    la hora de cada movimiento.
+  </p>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+<section class="card">
+  <div class="flex flex-wrap items-end gap-3 border-b border-hairline px-6 py-4">
+    <div class="mr-auto">
+      <h2 class="card-title">Registros de tipo de cambio</h2>
+      <p class="mt-1 text-sm text-ink-500">
+        La edición manual está habilitada únicamente para el día actual y el día hábil siguiente.
+      </p>
+    </div>
+
+    <div>
+      <label class="field-label" for="sourceFilter">Origen</label>
+      <select
+        id="sourceFilter"
+        class="field-input w-48"
+        (change)="changeSource($any($event.target).value)"
+      >
+        <option value="">Todos los orígenes</option>
+        <option value="automatic">Automático</option>
+        <option value="manual">Manual prevalece</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="field-label" for="monthFilter">Buscar mes</label>
+      <input
+        id="monthFilter"
+        type="month"
+        class="field-input w-44"
+        (change)="changeMonth($any($event.target).value)"
+      />
+    </div>
+
+    <label class="flex cursor-pointer items-center gap-2 pb-2.5 text-sm text-ink-600">
+      <input
+        type="checkbox"
+        class="accent-brand-500"
+        [checked]="includeDeleted()"
+        (change)="toggleDeleted($any($event.target).checked)"
+      />
+      Ver eliminados
+    </label>
+  </div>
+
+  @if (listError(); as message) {
+    <div class="px-6 py-4"><app-alert variant="error" [message]="message" /></div>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[1100px] text-left text-sm">
+      <thead class="border-b border-hairline bg-canvas text-xs tracking-wide text-ink-600 uppercase">
+        <tr>
+          <th class="px-5 py-3 font-semibold">Fecha aplicable</th>
+          <th class="px-5 py-3 font-semibold">Publicación Banxico</th>
+          <th class="px-5 py-3 font-semibold">Factor</th>
+          <th class="px-5 py-3 font-semibold">Valor calculado</th>
+          <th class="px-5 py-3 font-semibold">Valor manual</th>
+          <th class="px-5 py-3 font-semibold">Vigente</th>
+          <th class="px-5 py-3 font-semibold">Origen</th>
+          <th class="px-5 py-3 font-semibold">Última modificación</th>
+          <th class="px-5 py-3 text-right font-semibold">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-hairline">
+        @for (row of rows(); track row.uuid) {
+          <tr [class.opacity-60]="row.isDeleted">
+            <td class="px-5 py-3">
+              <div class="flex items-center gap-2">
+                <span class="text-ink-900">{{ row.applicableDate | date: 'dd/MM/yyyy' }}</span>
+                @if (dayLabel(row); as tag) {
+                  <span
+                    class="rounded-full px-2 py-0.5 text-xs font-medium"
+                    [class]="
+                      row.dayTag === 'today'
+                        ? 'bg-brand-100 text-brand-700'
+                        : 'bg-brand-50 text-brand-600'
+                    "
+                  >
+                    {{ tag }}
+                  </span>
+                }
+              </div>
+            </td>
+
+            <td class="px-5 py-3 text-ink-700">
+              {{ row.publishedRate ?? '—' }}
+              @if (row.publishedDate) {
+                <span class="text-ink-400">· {{ row.publishedDate | date: 'dd/MM/yyyy' }}</span>
+              }
+            </td>
+
+            <td class="px-5 py-3 text-ink-700">
+              {{ row.factorApplied ? row.factorValue : '—' }}
+            </td>
+
+            <td class="px-5 py-3 text-ink-700">{{ row.calculatedRate ?? '—' }}</td>
+
+            <td class="px-5 py-3">
+              <span [class]="row.manualRate ? 'text-brand-600' : 'text-ink-400'">
+                {{ row.manualRate ?? '—' }}
+              </span>
+            </td>
+
+            <td class="px-5 py-3 font-semibold text-ink-900">{{ row.effectiveRate ?? '—' }}</td>
+
+            <td class="px-5 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                [class]="
+                  row.source === 'manual'
+                    ? 'bg-brand-50 text-warning-600'
+                    : 'bg-emerald-50 text-success-600'
+                "
+              >
+                {{ row.sourceLabel }}
+              </span>
+            </td>
+
+            <td class="px-5 py-3">
+              <p class="text-ink-700">{{ row.lastModifiedBy }}</p>
+              @if (row.lastModifiedAt) {
+                <p class="text-xs text-ink-500">
+                  {{ row.lastModifiedAt | date: 'dd/MM/yyyy HH:mm' }} h
+                </p>
+              }
+            </td>
+
+            <td class="px-5 py-3">
+              <div class="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  class="btn-ghost px-2.5 py-1.5"
+                  (click)="openHistory(row)"
+                  aria-label="Ver historial"
+                  title="Ver historial"
+                >
+                  <app-icon name="history" [size]="15" />
+                </button>
+
+                @if (row.isEditable && !row.isDeleted) {
+                  <button
+                    type="button"
+                    class="btn-ghost px-3 py-1.5"
+                    (click)="openEdit(row)"
+                    [disabled]="busyUuid() === row.uuid"
+                  >
+                    <app-icon name="edit" [size]="15" />
+                    Editar
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-ghost px-2.5 py-1.5 text-danger-600"
+                    (click)="askDelete(row)"
+                    [disabled]="busyUuid() === row.uuid"
+                    aria-label="Eliminar registro"
+                  >
+                    <app-icon name="trash" [size]="15" />
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="9" class="px-6 py-10 text-center text-ink-500">
+              {{ loading() ? 'Cargando…' : 'No hay registros con esos filtros.' }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  @if (lastPage() > 1) {
+    <div class="flex items-center justify-between border-t border-hairline px-6 py-3 text-sm">
+      <span class="text-ink-500">
+        Página {{ currentPage() }} de {{ lastPage() }} · {{ total() }} registros
+      </span>
+      <div class="flex gap-2">
+        <button
+          type="button"
+          class="btn-ghost px-3 py-1.5"
+          (click)="goToPage(currentPage() - 1)"
+          [disabled]="currentPage() === 1"
+        >
+          Anterior
+        </button>
+        <button
+          type="button"
+          class="btn-ghost px-3 py-1.5"
+          (click)="goToPage(currentPage() + 1)"
+          [disabled]="currentPage() === lastPage()"
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  }
+</section>
+
+<!-- ------------------------------------------------------- corrección manual -->
+@if (editing(); as row) {
+  <app-modal
+    [title]="'Actualizar tipo de cambio · ' + row.applicableDate"
+    subtitle="El valor calculado por el sistema se conserva. Si no existe cálculo previo, el valor manual prevalecerá sobre cualquier cálculo futuro."
+    (closed)="closeEdit()"
+    (confirmed)="save()"
+  >
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5" novalidate>
+      @if (editError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div class="grid grid-cols-2 gap-4 rounded-md bg-canvas px-4 py-3">
+        <div>
+          <p class="text-xs text-ink-500">Valor calculado por el sistema</p>
+          <p class="mt-1 text-lg font-semibold text-ink-900">{{ row.calculatedRate ?? '—' }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-ink-500">Valor manual actual</p>
+          <p class="mt-1 text-lg font-semibold text-ink-900">{{ row.manualRate ?? '—' }}</p>
+        </div>
+      </div>
+
+      <div>
+        <label class="field-label" for="manualRate">Nuevo tipo de cambio</label>
+        <input
+          id="manualRate"
+          type="number"
+          step="0.0001"
+          formControlName="manualRate"
+          class="field-input"
+          [class.field-input-invalid]="error('manualRate')"
+        />
+        @if (error('manualRate'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="reason">Motivo de la variación</label>
+        <input
+          id="reason"
+          type="text"
+          formControlName="reason"
+          placeholder="Ej. Diferencia contra publicación de Banxico"
+          class="field-input"
+          [class.field-input-invalid]="error('reason')"
+        />
+        @if (error('reason'); as message) {
+          <p class="field-error">{{ message }}</p>
+        } @else {
+          <p class="mt-1.5 text-xs text-ink-500">
+            Se conserva en el historial para la aclaración posterior.
+          </p>
+        }
+      </div>
+    </form>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeEdit()">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Guardando…' : 'Guardar cambio' }}
+      </button>
+    </div>
+  </app-modal>
+}
+
+<!-- --------------------------------------------------------------- historial -->
+@if (historyOf(); as row) {
+  <app-modal
+    [title]="'Historial · ' + row.applicableDate"
+    subtitle="Todos los movimientos aplicados a este tipo de cambio."
+    confirmLabel="Cerrar"
+    (closed)="closeHistory()"
+    (confirmed)="closeHistory()"
+  >
+    @if (historyLoading()) {
+      <p class="py-4 text-sm text-ink-500">Cargando historial…</p>
+    } @else {
+      <ol class="space-y-5">
+        @for (entry of history(); track entry.uuid) {
+          <li class="flex gap-3">
+            <span class="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500"></span>
+            <div class="min-w-0">
+              <p class="text-sm font-medium text-ink-900">{{ entry.title }}</p>
+              <p class="text-sm break-words text-ink-600">{{ entry.detail }}</p>
+              <p class="mt-0.5 text-xs text-ink-500">
+                {{ entry.actorName }} · {{ entry.occurredAt | date: 'dd/MM/yyyy HH:mm' }} h
+              </p>
+            </div>
+          </li>
+        } @empty {
+          <li class="text-sm text-ink-500">Sin movimientos registrados.</li>
+        }
+      </ol>
+    }
+
+    <div modalFooter>
+      <button type="button" class="btn-primary" (click)="closeHistory()">Cerrar</button>
+    </div>
+  </app-modal>
+}
+
+<!-- ------------------------------------------------------------- eliminación -->
+@if (deleting(); as row) {
+  <app-modal
+    size="sm"
+    title="Eliminar registro"
+    confirmLabel="Eliminar"
+    confirmVariant="danger"
+    (closed)="cancelDelete()"
+    (confirmed)="confirmDelete()"
+  >
+    <p class="text-sm text-ink-600">
+      El tipo de cambio del {{ row.applicableDate | date: 'dd/MM/yyyy' }} dejará de estar vigente.
+      Es una baja lógica: el registro y su historial se conservan.
+    </p>
+  </app-modal>
+}
