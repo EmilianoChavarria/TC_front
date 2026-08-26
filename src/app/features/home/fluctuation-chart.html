@@ -47,7 +47,7 @@
               vector-effect="non-scaling-stroke"
             />
 
-            <!-- Tipo de cambio calculado -->
+            <!-- Tipo de cambio vigente -->
             <path
               [attr.d]="effectivePath()"
               fill="none"
@@ -96,7 +96,7 @@
               <span class="text-ink-700">{{ point.publishedRate ?? '—' }}</span>
             </p>
             <p class="text-xs text-brand-600">
-              Tipo de Cambio calculado :
+              Tipo de Cambio vigente :
               <span class="font-medium">{{ point.effectiveRate ?? '—' }}</span>
             </p>
           </div>

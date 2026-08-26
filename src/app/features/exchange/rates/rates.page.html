@@ -2,8 +2,8 @@
   <h1 class="text-2xl font-bold text-brand-500">Gestión de Tipo de Cambio</h1>
   <p class="mt-1 max-w-3xl text-sm text-ink-600">
     Registra o actualiza manualmente el tipo de cambio del día en curso o del día hábil siguiente.
-    El sistema conserva el valor calculado y el valor capturado, junto con el usuario, la fecha y
-    la hora de cada movimiento.
+    El sistema conserva la publicación de Banxico y el valor capturado, junto con el usuario, la
+    fecha y la hora de cada movimiento. El factor se muestra como dato informativo del rango.
   </p>
 </header>
 
@@ -31,7 +31,7 @@
       >
         <option value="">Todos los orígenes</option>
         <option value="automatic">Automático</option>
-        <option value="manual">Manual prevalece</option>
+        <option value="manual">Manual</option>
       </select>
     </div>
 
@@ -65,9 +65,8 @@
       <thead class="border-b border-hairline bg-canvas text-xs tracking-wide text-ink-600 uppercase">
         <tr>
           <th class="px-5 py-3 font-semibold">Fecha aplicable</th>
-          <th class="px-5 py-3 font-semibold">Publicación Banxico</th>
+          <th class="px-5 py-3 font-semibold">Tipo de cambio Banxico</th>
           <th class="px-5 py-3 font-semibold">Factor</th>
-          <th class="px-5 py-3 font-semibold">Valor calculado</th>
           <th class="px-5 py-3 font-semibold">Valor manual</th>
           <th class="px-5 py-3 font-semibold">Vigente</th>
           <th class="px-5 py-3 font-semibold">Origen</th>
@@ -107,8 +106,6 @@
             <td class="px-5 py-3 text-ink-700">
               {{ row.factorApplied ? row.factorValue : '—' }}
             </td>
-
-            <td class="px-5 py-3 text-ink-700">{{ row.calculatedRate ?? '—' }}</td>
 
             <td class="px-5 py-3">
               <span [class]="row.manualRate ? 'text-brand-600' : 'text-ink-400'">
@@ -178,7 +175,7 @@
           </tr>
         } @empty {
           <tr>
-            <td colspan="9" class="px-6 py-10 text-center text-ink-500">
+            <td colspan="8" class="px-6 py-10 text-center text-ink-500">
               {{ loading() ? 'Cargando…' : 'No hay registros con esos filtros.' }}
             </td>
           </tr>
@@ -218,7 +215,7 @@
 @if (editing(); as row) {
   <app-modal
     [title]="'Actualizar tipo de cambio · ' + row.applicableDate"
-    subtitle="El valor calculado por el sistema se conserva. Si no existe cálculo previo, el valor manual prevalecerá sobre cualquier cálculo futuro."
+    subtitle="La publicación de Banxico se conserva. Si aún no hay publicación, el valor manual prevalecerá sobre la que llegue después."
     (closed)="closeEdit()"
     (confirmed)="save()"
   >
@@ -229,8 +226,8 @@
 
       <div class="grid grid-cols-2 gap-4 rounded-md bg-canvas px-4 py-3">
         <div>
-          <p class="text-xs text-ink-500">Valor calculado por el sistema</p>
-          <p class="mt-1 text-lg font-semibold text-ink-900">{{ row.calculatedRate ?? '—' }}</p>
+          <p class="text-xs text-ink-500">Tipo de cambio Banxico</p>
+          <p class="mt-1 text-lg font-semibold text-ink-900">{{ row.publishedRate ?? '—' }}</p>
         </div>
         <div>
           <p class="text-xs text-ink-500">Valor manual actual</p>

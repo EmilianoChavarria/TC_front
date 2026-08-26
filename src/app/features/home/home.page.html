@@ -1,7 +1,8 @@
 <header class="mb-6">
   <h1 class="text-2xl font-bold text-brand-500">Resumen del Tipo de Cambio</h1>
   <p class="mt-1 max-w-3xl text-sm text-ink-600">
-    Proceso automático de recuperación de la publicación de Banxico y cálculo del tipo de cambio.
+    Proceso automático de recuperación del tipo de cambio publicado por Banxico y del factor
+    que corresponde a su rango.
     @if (today(); as card) {
     Información al {{ card.dateLabel }}.
     }
@@ -57,17 +58,21 @@
       </div>
 
       <div class="text-right">
-        <p class="text-base font-semibold text-brand-700">Factor aplicado</p>
+        <p class="text-base font-semibold text-brand-700">Factor del rango</p>
         <p class="mt-2 leading-none font-bold tracking-tight text-ink-900" [class.text-5xl]="card.factorApplied"
           [class.text-2xl]="!card.factorApplied">
           {{ card.factorApplied ? card.factorValue : 'Sin factor' }}
         </p>
+        @if (card.factorApplied && card.factorCode !== null) {
+        <p class="mt-1 text-xs text-ink-400">Clave {{ card.factorCode }}</p>
+        }
+        <p class="mt-1 text-xs text-ink-500">Informativo: no modifica el tipo de cambio</p>
       </div>
     </div>
 
     <div class="mt-6 grid gap-5 border-t border-brand-200 pt-5 sm:grid-cols-2">
       <div>
-        <p class="text-xs text-ink-500">Publicación Banxico</p>
+        <p class="text-xs text-ink-500">Tipo de cambio Banxico</p>
         <p class="mt-1 text-base text-ink-900">{{ card.publishedRate ?? '—' }}</p>
         @if (card.publishedDate) {
         <p class="text-xs text-ink-400">{{ card.publishedDate | date: 'dd/MM/yyyy' }}</p>
@@ -111,13 +116,25 @@
       </div>
 
       @if (card.available) {
-      <p class="mt-4 text-3xl font-bold tracking-tight text-ink-900">
-        {{ card.effectiveRate }}
-      </p>
+      <div class="mt-4 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="text-xs text-ink-500">Tipo de cambio</p>
+          <p class="mt-1 text-3xl font-bold tracking-tight text-ink-900">
+            {{ card.effectiveRate }}
+          </p>
+        </div>
+
+        <div class="text-right">
+          <p class="text-xs text-ink-500">Factor del rango</p>
+          <p class="mt-1 text-xl font-semibold text-ink-900">
+            {{ card.factorApplied ? card.factorValue : 'Sin factor' }}
+          </p>
+        </div>
+      </div>
 
       <p class="mt-3 flex items-center gap-2 text-sm text-ink-600">
         <span class="text-ink-400"><app-icon name="clock" [size]="15" /></span>
-        Cálculo generado el {{ card.calculatedAt | date: 'dd/MM/yyyy HH:mm' }} h
+        Sincronizado el {{ card.calculatedAt | date: 'dd/MM/yyyy HH:mm' }} h
       </p>
 
       @if (card.source === 'manual') {
@@ -125,7 +142,7 @@
       }
       } @else {
       <p class="mt-4 text-sm text-ink-600">
-        Pendiente: se calcula con la publicación de hoy.
+        Pendiente: se toma de la publicación de hoy.
       </p>
       }
       }
@@ -176,7 +193,7 @@
   @if (fluctuation(); as series) {
   <h2 class="card-title">Fluctuación de los últimos {{ series.days }} días</h2>
   <p class="mt-1 text-sm text-ink-500">
-    Línea naranja: tipo de cambio calculado · Línea gris punteada: publicación Banxico
+    Línea naranja: tipo de cambio vigente · Línea gris punteada: publicación Banxico
   </p>
 
   <div class="mt-6">
