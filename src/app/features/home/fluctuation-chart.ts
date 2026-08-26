@@ -27,7 +27,7 @@ interface PlottedPoint {
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
 
 /**
- * Gráfica de fluctuación: línea naranja del tipo de cambio calculado y línea
+ * Gráfica de fluctuación: línea naranja del tipo de cambio vigente y línea
  * gris punteada de la publicación de Banxico.
  *
  * Las líneas van en SVG estirado (`preserveAspectRatio="none"`) con trazo de

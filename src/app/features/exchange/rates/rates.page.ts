@@ -137,7 +137,7 @@ export class RatesPage {
     this.editing.set(row);
     this.editError.set(null);
     this.form.reset({
-      manualRate: Number(row.manualRate ?? row.effectiveRate ?? row.calculatedRate ?? 0),
+      manualRate: Number(row.manualRate ?? row.effectiveRate ?? row.publishedRate ?? 0),
       reason: '',
     });
   }
@@ -168,7 +168,7 @@ export class RatesPage {
         this.editing.set(null);
         this.feedback.set({
           variant: 'success',
-          message: `Tipo de cambio del ${row.applicableDate} actualizado. El valor calculado se conserva.`,
+          message: `Tipo de cambio del ${row.applicableDate} actualizado. La publicación de Banxico se conserva.`,
         });
         this.load(this.currentPage());
       },
@@ -283,8 +283,8 @@ export class RatesPage {
     const values = entry.newValues ?? {};
 
     if (entry.event === MANUAL_OVERRIDE) {
-      // El valor reemplazado es el que estaba vigente, haya venido del cálculo
-      // automático o de una captura manual anterior.
+      // El valor reemplazado es el que estaba vigente, haya venido de la
+      // publicación de Banxico o de una captura manual anterior.
       const previous =
         values['previousEffectiveRate'] ?? fallbackPrevious ?? values['previousManualRate'];
 
@@ -293,7 +293,7 @@ export class RatesPage {
         title: 'Corrección manual',
         detail:
           `${this.rateText(previous)} → ${this.rateText(values['manualRate'])}` +
-          ` · Calculado por el sistema: ${this.rateText(values['calculatedRate'])}` +
+          ` · Publicación Banxico: ${this.rateText(values['publishedRate'] ?? values['calculatedRate'])}` +
           ` · Motivo: ${values['reason'] ?? '—'}`,
         actorName: entry.actorName,
         occurredAt: entry.occurredAt,
@@ -307,7 +307,7 @@ export class RatesPage {
 
       return {
         uuid: entry.uuid,
-        title: 'Cálculo automático del sistema',
+        title: 'Sincronización automática',
         detail:
           `— → ${this.rateText(values['effectiveRate'])}` +
           (published ? ` · Publicación Banxico ${this.rateText(published)}` : '') +
@@ -333,7 +333,6 @@ export class RatesPage {
       publishedRate: 'Publicación Banxico',
       publishedDate: 'Fecha de publicación',
       factorValue: 'Factor',
-      calculatedRate: 'Valor calculado',
       manualRate: 'Valor manual',
       effectiveRate: 'Vigente',
       manualReason: 'Motivo',

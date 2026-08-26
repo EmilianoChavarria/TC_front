@@ -32,7 +32,9 @@ export interface NextBusinessDayCard {
   effectiveRate?: string | null;
   publishedRate?: string | null;
   publishedDate?: string | null;
+  factorCode?: number | null;
   factorValue?: string | null;
+  factorApplied?: boolean;
   source?: RateSource;
   sourceLabel?: string;
   calculatedAt?: string | null;

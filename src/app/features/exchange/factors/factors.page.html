@@ -3,7 +3,8 @@
     <h1 class="text-2xl font-bold text-brand-500">Administración de Factores</h1>
     <p class="mt-1 max-w-2xl text-sm text-ink-600">
       Tabla de factores por rango de la publicación de Banxico. El sistema identifica el rango en el
-      que cae la publicación del día y aplica el factor correspondiente al cálculo final.
+      que cae la publicación del día y muestra el factor correspondiente junto al tipo de cambio;
+      el factor no modifica el tipo de cambio.
     </p>
   </div>
 
@@ -134,7 +135,7 @@
               {{
                 loading()
                   ? 'Cargando…'
-                  : 'Aún no hay factores registrados. Sin factores, el tipo de cambio vigente es la publicación tal cual.'
+                  : 'Aún no hay factores registrados. El tipo de cambio vigente es la publicación tal cual.'
               }}
             </td>
           </tr>
