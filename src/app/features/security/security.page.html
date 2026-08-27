@@ -1,0 +1,308 @@
+<header class="mb-6">
+  <h1 class="text-2xl font-bold text-brand-500">Gestión de Seguridad</h1>
+  <p class="mt-1 max-w-3xl text-sm text-ink-600">
+    Historial de usuarios y direcciones IP bloqueadas por fallos de autenticación, con desbloqueo
+    desde el propio sistema.
+  </p>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+@if (loadError(); as message) {
+  <div class="mb-5">
+    <app-alert variant="error" [message]="message" />
+  </div>
+}
+
+<!-- Las cifras son del sistema completo, no de la página: cuentan lo que sigue
+     bloqueado hoy, mientras que las tablas de abajo son historial. -->
+<div class="mb-6 grid gap-4 sm:grid-cols-2 lg:max-w-3xl">
+  <div class="card p-5">
+    <p class="text-sm text-ink-500">Usuarios bloqueados actualmente</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900">{{ summary()?.blockedUsers ?? 0 }}</p>
+  </div>
+
+  <div class="card p-5">
+    <p class="text-sm text-ink-500">Direcciones IP bloqueadas actualmente</p>
+    <p class="mt-1 text-3xl font-bold text-ink-900">{{ summary()?.blockedIps ?? 0 }}</p>
+  </div>
+</div>
+
+<div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+  <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
+    <input
+      type="checkbox"
+      [checked]="onlyActive()"
+      (change)="toggleOnlyActive()"
+      class="h-4 w-4 accent-brand-500"
+    />
+    Mostrar sólo los que siguen bloqueados
+  </label>
+
+  @if (summary(); as data) {
+    <p class="text-xs text-ink-400">
+      Los bloqueos se generan al superar los umbrales de fallos en {{ data.attemptWindowHours }} h,
+      configurados en Configuración del Sistema.
+    </p>
+  }
+</div>
+
+@if (loading()) {
+  <div class="animate-pulse space-y-6">
+    <div class="h-64 rounded-md bg-canvas"></div>
+    <div class="h-64 rounded-md bg-canvas"></div>
+  </div>
+} @else {
+  <!-- ------------------------------------------------------------- usuarios -->
+  <section class="card mb-6 p-6">
+    <h2 class="text-xs font-semibold tracking-wide text-ink-500 uppercase">Usuarios bloqueados</h2>
+    <p class="mt-1 text-sm text-ink-500">
+      {{ onlyActive() ? 'Sólo los que siguen bloqueados.' : 'Historial completo, incluidos los ya liberados.' }}
+    </p>
+
+    @if (users().length === 0) {
+      <div class="mt-5 rounded-md border border-dashed border-hairline px-6 py-10 text-center">
+        <p class="text-sm font-medium text-ink-900">No hay usuarios bloqueados</p>
+        <p class="mt-1 text-sm text-ink-500">
+          Ninguna cuenta ha superado el máximo de fallos de autenticación.
+        </p>
+      </div>
+    } @else {
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full min-w-[48rem] border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-hairline text-left">
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Usuario
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Correo electrónico
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Fallos
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Motivo
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Fecha de bloqueo
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Estado
+              </th>
+              <th class="pb-3 text-right text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of users(); track row.uuid) {
+              <tr class="border-b border-hairline last:border-0">
+                <td class="py-3 pr-4 font-medium text-ink-900">{{ row.fullName ?? '—' }}</td>
+                <td class="py-3 pr-4 text-ink-600">{{ row.email ?? '—' }}</td>
+                <td class="py-3 pr-4 text-ink-900">{{ row.failedAttempts }}</td>
+                <td class="py-3 pr-4 text-ink-600">{{ row.reason ?? '—' }}</td>
+                <td class="py-3 pr-4 whitespace-nowrap text-ink-500">
+                  {{ row.blockedAt | date: 'dd/MM/yyyy HH:mm' }} h
+                </td>
+                <td class="py-3 pr-4">
+                  <span
+                    class="inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold"
+                    [class]="
+                      row.isBlocked
+                        ? 'border-danger-600/30 bg-red-50 text-danger-600'
+                        : 'border-success-600/30 bg-emerald-50 text-success-600'
+                    "
+                  >
+                    {{ row.isBlocked ? 'Bloqueado' : 'Desbloqueado' }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <div class="flex justify-end">
+                    @if (row.canUnblock) {
+                      <button
+                        type="button"
+                        (click)="confirmUnlockUser(row)"
+                        [disabled]="busyKey() === (row.userUuid ?? row.uuid)"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700 disabled:opacity-50"
+                      >
+                        <app-icon name="lock" [size]="14" />
+                        Desbloquear
+                      </button>
+                    } @else {
+                      <span class="text-ink-400">—</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (userLastPage() > 1) {
+        <div
+          class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-sm"
+        >
+          <span class="text-ink-500">
+            Página {{ userPage() }} de {{ userLastPage() }} · {{ userTotal() }}
+            {{ userTotal() === 1 ? 'registro' : 'registros' }}
+          </span>
+
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn-ghost px-3 py-1.5"
+              (click)="goToUserPage(userPage() - 1)"
+              [disabled]="userPage() === 1"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="btn-ghost px-3 py-1.5"
+              (click)="goToUserPage(userPage() + 1)"
+              [disabled]="userPage() === userLastPage()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </section>
+
+  <!-- ------------------------------------------------------------------ ips -->
+  <section class="card p-6">
+    <h2 class="text-xs font-semibold tracking-wide text-ink-500 uppercase">
+      Direcciones IP bloqueadas
+    </h2>
+    <p class="mt-1 text-sm text-ink-500">
+      Bloqueos generados al superar el máximo de fallos de autenticación por IP en
+      {{ summary()?.attemptWindowHours ?? 24 }} horas.
+    </p>
+
+    @if (ips().length === 0) {
+      <div class="mt-5 rounded-md border border-dashed border-hairline px-6 py-10 text-center">
+        <p class="text-sm font-medium text-ink-900">No hay direcciones IP bloqueadas</p>
+        <p class="mt-1 text-sm text-ink-500">
+          Ninguna dirección ha superado el máximo de fallos de autenticación.
+        </p>
+      </div>
+    } @else {
+      <div class="mt-5 overflow-x-auto">
+        <table class="w-full min-w-[44rem] border-collapse text-sm">
+          <thead>
+            <tr class="border-b border-hairline text-left">
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Dirección IP
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Origen
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Fallos
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Fecha de bloqueo
+              </th>
+              <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Estado
+              </th>
+              <th class="pb-3 text-right text-xs font-semibold tracking-wide text-ink-500 uppercase">
+                Acciones
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of ips(); track row.uuid) {
+              <tr class="border-b border-hairline last:border-0">
+                <td class="py-3 pr-4 font-mono font-medium text-ink-900">{{ row.ipAddress }}</td>
+                <td class="py-3 pr-4 text-ink-600">{{ row.country ?? '—' }}</td>
+                <td class="py-3 pr-4 text-ink-900">{{ row.failedAttempts }}</td>
+                <td class="py-3 pr-4 whitespace-nowrap text-ink-500">
+                  {{ row.blockedAt | date: 'dd/MM/yyyy HH:mm' }} h
+                </td>
+                <td class="py-3 pr-4">
+                  <span
+                    class="inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold"
+                    [class]="
+                      row.isBlocked
+                        ? 'border-danger-600/30 bg-red-50 text-danger-600'
+                        : 'border-success-600/30 bg-emerald-50 text-success-600'
+                    "
+                  >
+                    {{ row.isBlocked ? 'Bloqueada' : 'Desbloqueada' }}
+                  </span>
+                </td>
+                <td class="py-3">
+                  <div class="flex justify-end">
+                    @if (row.canUnblock) {
+                      <button
+                        type="button"
+                        (click)="confirmUnlockIp(row)"
+                        [disabled]="busyKey() === row.ipAddress"
+                        class="inline-flex items-center gap-1.5 rounded-md border border-hairline px-3 py-1.5 text-sm font-medium text-ink-700 transition-colors hover:border-brand-300 hover:text-brand-700 disabled:opacity-50"
+                      >
+                        <app-icon name="lock" [size]="14" />
+                        Desbloquear
+                      </button>
+                    } @else {
+                      <span class="text-ink-400">—</span>
+                    }
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+
+      @if (ipLastPage() > 1) {
+        <div
+          class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-sm"
+        >
+          <span class="text-ink-500">
+            Página {{ ipPage() }} de {{ ipLastPage() }} · {{ ipTotal() }}
+            {{ ipTotal() === 1 ? 'registro' : 'registros' }}
+          </span>
+
+          <div class="flex gap-2">
+            <button
+              type="button"
+              class="btn-ghost px-3 py-1.5"
+              (click)="goToIpPage(ipPage() - 1)"
+              [disabled]="ipPage() === 1"
+            >
+              Anterior
+            </button>
+            <button
+              type="button"
+              class="btn-ghost px-3 py-1.5"
+              (click)="goToIpPage(ipPage() + 1)"
+              [disabled]="ipPage() === ipLastPage()"
+            >
+              Siguiente
+            </button>
+          </div>
+        </div>
+      }
+    }
+  </section>
+}
+
+@if (confirming(); as pending) {
+  <app-modal
+    [title]="pending.title"
+    size="sm"
+    [confirmLabel]="pending.confirmLabel"
+    (closed)="dismissConfirm()"
+    (confirmed)="acceptConfirm()"
+  >
+    <p class="text-sm text-ink-600">{{ pending.message }}</p>
+  </app-modal>
+}
