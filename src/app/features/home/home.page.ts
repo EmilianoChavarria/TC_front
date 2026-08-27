@@ -7,7 +7,7 @@ import { ApiError } from '../../core/models/api.models';
 import { ExchangeDashboard } from '../../core/models/dashboard.models';
 import { Alert } from '../../shared/alert/alert';
 import { Icon } from '../../shared/icon/icon';
-import { FluctuationChart } from './fluctuation-chart';
+import { FluctuationChart } from '../../shared/chart/fluctuation-chart';
 
 /**
  * Resumen del Tipo de Cambio: valor vigente, día hábil siguiente, indicadores

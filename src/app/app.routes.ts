@@ -3,6 +3,19 @@ import { Routes } from '@angular/router';
 import { adminGuard, authGuard, guestGuard, passwordChangeGuard } from './core/auth/auth.guards';
 
 export const routes: Routes = [
+  /*
+   * Consulta pública. Es la raíz del sitio a propósito: quien llega desde
+   * internet ve el tipo de cambio, no una pantalla de acceso. No lleva guard
+   * porque no hay nada que proteger, y vive fuera del `Shell` para que no
+   * arrastre menú, sesión ni ninguna otra señal del portal.
+   */
+  {
+    path: '',
+    pathMatch: 'full',
+    title: 'Tipo de Cambio México · Timken',
+    loadComponent: () =>
+      import('./features/public/public-rate.page').then((m) => m.PublicRatePage),
+  },
   {
     path: 'login',
     canActivate: [guestGuard],
@@ -42,17 +55,17 @@ export const routes: Routes = [
           import('./features/exchange/factors/factors.page').then((m) => m.FactorsPage),
       },
       {
-        path: 'usuarios',
-        canActivate: [adminGuard],
-        title: 'Gestión de Usuarios · Portal de Tipo de Cambio',
-        loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
-      },
-      {
         path: 'dias-feriados',
         canActivate: [adminGuard],
         title: 'Días feriados · Portal de Tipo de Cambio',
         loadComponent: () =>
           import('./features/holidays/holidays.page').then((m) => m.HolidaysPage),
+      },
+      {
+        path: 'usuarios',
+        canActivate: [adminGuard],
+        title: 'Gestión de Usuarios · Portal de Tipo de Cambio',
+        loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
       },
       {
         path: 'correos-notificacion',
@@ -80,7 +93,6 @@ export const routes: Routes = [
         title: 'Mi cuenta · Portal de Tipo de Cambio',
         loadComponent: () => import('./features/account/account.page').then((m) => m.AccountPage),
       },
-      { path: '', pathMatch: 'full', redirectTo: 'inicio' },
     ],
   },
   { path: '**', redirectTo: '' },

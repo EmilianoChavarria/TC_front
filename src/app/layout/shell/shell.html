@@ -11,12 +11,22 @@
 
         <nav class="flex-1 space-y-1 px-3 py-2">
           @for (item of navItems; track item.route) {
+          @if (item.external) {
+          <!-- Pestaña nueva: la consulta pública está fuera del portal y no
+               debe sacar al usuario de su sesión. -->
+          <a [href]="item.route" target="_blank" rel="noopener"
+            class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-canvas">
+            <app-icon [name]="$any(item.icon)" [size]="18" />
+            {{ item.label }}
+          </a>
+          } @else {
           <a [routerLink]="item.route" routerLinkActive="bg-brand-500 text-white hover:bg-brand-500"
             #itemActive="routerLinkActive"
             class="flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-semibold text-ink-700 transition hover:bg-canvas">
             <app-icon [name]="$any(item.icon)" [size]="18" />
             {{ item.label }}
           </a>
+          }
           }
 
           @for (group of navGroups(); track group.label) {
