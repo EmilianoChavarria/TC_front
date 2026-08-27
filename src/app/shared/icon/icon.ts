@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 import {
   ArrowLeftRight,
   ArrowUpRight,
+  CalendarDays,
   Check,
   ChevronDown,
   Clock,
@@ -52,7 +53,8 @@ const ICONS = {
   trash: Trash2,
   history: History,
   exchange: ArrowLeftRight,
-  arrowupright: ArrowUpRight
+  calendar: CalendarDays,
+  arrowupright: ArrowUpRight,
 } satisfies Record<string, LucideIconData>;
 
 export type IconName = keyof typeof ICONS;
