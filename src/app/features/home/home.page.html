@@ -1,8 +1,8 @@
 <header class="mb-6">
   <h1 class="text-2xl font-bold text-brand-500">Resumen del Tipo de Cambio</h1>
   <p class="mt-1 max-w-3xl text-sm text-ink-600">
-    Proceso automático de recuperación del tipo de cambio publicado por Banxico y del factor
-    que corresponde a su rango.
+    Proceso automático de recuperación del tipo de cambio publicado por Banxico y del factor que
+    corresponde a su rango.
     @if (today(); as card) {
     Información al {{ card.dateLabel }}.
     }
@@ -16,31 +16,37 @@
 }
 
 @if (loading()) {
-<div class="grid animate-pulse gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
-  <div class="h-64 rounded-lg bg-white"></div>
+<!-- El esqueleto reparte igual que el contenido real: si no, al cargar
+       se ve un salto de anchura que parece un fallo de maquetación. -->
+<div class="grid animate-pulse gap-6 lg:grid-cols-2">
+  <div class="h-48 rounded-lg bg-white"></div>
   <div class="space-y-6">
     <div class="h-36 rounded-lg bg-white"></div>
     <div class="h-24 rounded-lg bg-white"></div>
   </div>
 </div>
 } @else if (data()) {
-<div class="grid gap-6 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
+<div class="grid gap-6 lg:grid-cols-2 items-center">
   <!-- ---------------------------------------------- tipo de cambio vigente -->
-  <section class="rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-5">
+  <!-- flex + justify-center: la rejilla estira esta tarjeta hasta la altura
+         de la columna derecha, que apila tres bloques. Sin centrar, el
+         contenido se queda arriba y el hueco de abajo parece un error. -->
+  <section class="flex flex-col justify-center rounded-lg border border-brand-200 bg-brand-50/60 px-6 py-12 h-fit">
     @if (today(); as card) {
-
-
     @if (card.available) {
-    <div class="mt-5 flex w-full flex-wrap items-end justify-between gap-4">
+    <div class="flex w-full flex-wrap items-end justify-between gap-4">
       <div class="flex flex-row items-end gap-x-2">
-        <div class="flex flex-col">
+        <div class="flex flex-col gap-y-4">
           <h2 class="text-base font-semibold text-brand-700">Tipo de Cambio vigente hoy</h2>
-          <p class="mt-0.5 text-sm text-ink-500">{{ card.dateLabel }}</p>
-          <div class="flex flex-row items-center justify-center gap-x-2">
-            <span class="text-5xl leading-none font-bold tracking-tight text-ink-900">
-              {{ card.effectiveRate }}
-            </span>
-            <span class=" text-lg text-ink-500">{{ data()?.currency }}</span>
+          <div class="flex flex-col">
+            <p class="text-sm text-ink-500">{{ card.dateLabel }}</p>
+            <div class="flex flex-row items-center justify-center gap-x-2">
+
+              <span class="text-5xl leading-none font-bold tracking-tight text-ink-900">
+                {{ card.effectiveRate }}
+              </span>
+              <span class="text-lg text-ink-500">{{ data()?.currency }}</span>
+            </div>
           </div>
         </div>
 
@@ -57,41 +63,16 @@
         }
       </div>
 
-      <div class="text-right">
+      <div class="text-right flex flex-col gap-y-6">
         <p class="text-base font-semibold text-brand-700">Factor del rango</p>
         <p class="mt-2 leading-none font-bold tracking-tight text-ink-900" [class.text-5xl]="card.factorApplied"
           [class.text-2xl]="!card.factorApplied">
           {{ card.factorApplied ? card.factorValue : 'Sin factor' }}
         </p>
-        @if (card.factorApplied && card.factorCode !== null) {
-        <p class="mt-1 text-xs text-ink-400">Clave {{ card.factorCode }}</p>
-        }
-        <p class="mt-1 text-xs text-ink-500">Informativo: no modifica el tipo de cambio</p>
-      </div>
-    </div>
-
-    <div class="mt-6 grid gap-5 border-t border-brand-200 pt-5 sm:grid-cols-2">
-      <div>
-        <p class="text-xs text-ink-500">Tipo de cambio Banxico</p>
-        <p class="mt-1 text-base text-ink-900">{{ card.publishedRate ?? '—' }}</p>
-        @if (card.publishedDate) {
-        <p class="text-xs text-ink-400">{{ card.publishedDate | date: 'dd/MM/yyyy' }}</p>
-        }
-      </div>
-
-      <div>
-        <p class="text-xs text-ink-500">Origen del valor</p>
-        <span class="mt-1 inline-flex rounded-md border px-2.5 py-1 text-sm" [class]="
-                  card.source === 'manual'
-                    ? 'border-brand-300 bg-white text-warning-600'
-                    : 'border-success-600/30 bg-emerald-50 text-success-600'
-                ">
-          {{ card.sourceLabel }}
-        </span>
       </div>
     </div>
     } @else {
-    <p class="mt-6 text-sm text-ink-600">
+    <p class="text-sm text-ink-600">
       Todavía no hay tipo de cambio para hoy. El proceso automático lo genera con la
       publicación del día hábil anterior.
     </p>
@@ -141,9 +122,7 @@
       <p class="mt-1 text-sm text-warning-600">{{ card.sourceLabel }}</p>
       }
       } @else {
-      <p class="mt-4 text-sm text-ink-600">
-        Pendiente: se toma de la publicación de hoy.
-      </p>
+      <p class="mt-4 text-sm text-ink-600">Pendiente: se toma de la publicación de hoy.</p>
       }
       }
     </section>

@@ -50,7 +50,12 @@ export class SessionService {
       return;
     }
 
-    this.registerActivity();
+    // La sesión se acaba de comprobar al entrar (login o recuperación al
+    // recargar): renovarla otra vez aquí sería una segunda `auth/verify`
+    // simultánea, y como cada una rota el token, la que llega tarde tumba la
+    // sesión. El contador arranca como si ya se hubiera renovado.
+    this.lastActivityAt = Date.now();
+    this.lastRenewAt = Date.now();
     this.attachActivityListeners();
 
     // Fuera de Angular: un intervalo de un segundo no debe disparar detección
