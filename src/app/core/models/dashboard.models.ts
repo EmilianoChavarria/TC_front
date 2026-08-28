@@ -1,4 +1,8 @@
-export type RateSource = 'automatic' | 'manual';
+/**
+ * `carried`: día feriado sin publicación aplicable; conserva el tipo de cambio
+ * del día hábil anterior.
+ */
+export type RateSource = 'automatic' | 'manual' | 'carried';
 
 export interface RateChange {
   amount: string;

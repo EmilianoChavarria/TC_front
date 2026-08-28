@@ -32,6 +32,7 @@
         <option value="">Todos los orígenes</option>
         <option value="automatic">Automático</option>
         <option value="manual">Manual</option>
+        <option value="carried">Feriado</option>
       </select>
     </div>
 
@@ -121,7 +122,9 @@
                 [class]="
                   row.source === 'manual'
                     ? 'bg-brand-50 text-warning-600'
-                    : 'bg-emerald-50 text-success-600'
+                    : row.isCarried
+                      ? 'bg-canvas text-ink-600'
+                      : 'bg-emerald-50 text-success-600'
                 "
               >
                 {{ row.sourceLabel }}

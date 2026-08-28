@@ -29,6 +29,9 @@ export interface ExchangeRateRow {
   dayTag: 'today' | 'next' | null;
   publishedRate: string | null;
   publishedDate: string | null;
+  /** Día feriado: fecha de la que se arrastró el tipo de cambio vigente. */
+  carriedFromDate: string | null;
+  isCarried: boolean;
   factorCode: number | null;
   factorValue: string | null;
   factorApplied: boolean;
