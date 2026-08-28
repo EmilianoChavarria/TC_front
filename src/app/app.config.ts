@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import {
   ApplicationConfig,
@@ -11,6 +12,8 @@ import {
   withEnabledBlockingInitialNavigation,
 } from '@angular/router';
 
+import { of } from 'rxjs';
+
 import { routes } from './app.routes';
 import { AuthService } from './core/auth/auth.service';
 import { authInterceptor } from './core/http/auth.interceptor';
@@ -23,7 +26,18 @@ import { authInterceptor } from './core/http/auth.interceptor';
  * hay sesión»: la aplicación arranca como invitado.
  */
 function restoreSession() {
-  return inject(AuthService).ensureSession();
+  const auth = inject(AuthService);
+  const path = inject(DOCUMENT).location?.pathname ?? '/';
+
+  // ⚠️ En la consulta pública NO se pregunta por la sesión. Ese `auth/verify`
+  // sería la única pista de que hay un portal detrás: sale en la red del
+  // navegador y responde 401 a quien sólo viene a ver el tipo de cambio. Quien
+  // entra al portal resuelve la sesión en el guard de todos modos.
+  if (path === '/') {
+    return of(false);
+  }
+
+  return auth.ensureSession();
 }
 
 export const appConfig: ApplicationConfig = {

@@ -7,6 +7,12 @@ export interface NavItem {
   icon: IconName;
   /** Roles que ven la entrada; vacío significa "cualquier sesión". */
   roles?: RoleName[];
+  /**
+   * Abre en una pestaña nueva. La consulta pública no es una pantalla del
+   * portal: navegar a ella dentro de la misma pestaña sacaría al usuario de su
+   * sesión sin avisar.
+   */
+  external?: boolean;
 }
 
 export interface NavGroup {
@@ -20,7 +26,10 @@ export interface NavGroup {
  * Menú lateral. Las entradas de módulos aún no construidos se agregarán aquí
  * conforme lleguen; el shell ya soporta grupos plegables.
  */
-export const NAV_ITEMS: NavItem[] = [{ label: 'Inicio', route: '/inicio', icon: 'home' }];
+export const NAV_ITEMS: NavItem[] = [
+  { label: 'Inicio', route: '/inicio', icon: 'home' },
+  { label: 'Vista Pública', route: '/', icon: 'globe', external: true },
+];
 
 export const NAV_GROUPS: NavGroup[] = [
   {
