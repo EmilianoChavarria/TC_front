@@ -34,12 +34,21 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: 'settings',
         roles: ['SUPERADMIN', 'ADMIN'],
       },
+      {
+        label: 'Días feriados',
+        route: '/dias-feriados',
+        icon: 'calendar',
+        roles: ['SUPERADMIN', 'ADMIN'],
+      },
     ],
   },
   {
     label: 'Configuración',
     icon: 'settings',
     roles: ['SUPERADMIN', 'ADMIN'],
-    items: [{ label: 'Gestión de Usuarios', route: '/usuarios', icon: 'users' }],
+    items: [
+      { label: 'Gestión de Usuarios', route: '/usuarios', icon: 'users' },
+      { label: 'Correos de notificación', route: '/correos-notificacion', icon: 'mail' },
+    ],
   },
 ];

@@ -48,6 +48,20 @@ export const routes: Routes = [
         loadComponent: () => import('./features/users/users.page').then((m) => m.UsersPage),
       },
       {
+        path: 'dias-feriados',
+        canActivate: [adminGuard],
+        title: 'Días feriados · Portal de Tipo de Cambio',
+        loadComponent: () =>
+          import('./features/holidays/holidays.page').then((m) => m.HolidaysPage),
+      },
+      {
+        path: 'correos-notificacion',
+        canActivate: [adminGuard],
+        title: 'Correos de notificación · Portal de Tipo de Cambio',
+        loadComponent: () =>
+          import('./features/notifications/recipients.page').then((m) => m.RecipientsPage),
+      },
+      {
         path: 'mi-cuenta',
         title: 'Mi cuenta · Portal de Tipo de Cambio',
         loadComponent: () => import('./features/account/account.page').then((m) => m.AccountPage),

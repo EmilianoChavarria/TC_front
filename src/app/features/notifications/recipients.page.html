@@ -1,0 +1,399 @@
+<header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-brand-500">Correos de notificación</h1>
+    <p class="mt-1 max-w-3xl text-sm text-ink-600">
+      Direcciones que reciben el tipo de cambio cada vez que queda establecido: el proceso diario de
+      Banxico y también cualquier corrección manual.
+      <span class="text-ink-500">
+        No son usuarios del portal; agregar un correo aquí no crea una cuenta.
+      </span>
+    </p>
+  </div>
+
+  <button
+    type="button"
+    (click)="openCreate()"
+    class="h-fit rounded-md bg-brand-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-brand-700"
+  >
+    Agregar correos
+  </button>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+@if (listError(); as message) {
+  <div class="mb-5">
+    <app-alert variant="error" [message]="message" />
+  </div>
+}
+
+<!-- ------------------------------------------------------------ modo de envío -->
+<section class="card mb-6 p-6">
+  <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+    <div>
+      <h2 class="card-title">Modo de envío</h2>
+      <p class="mt-1 max-w-2xl text-sm text-ink-500">
+        Aplica a todo el correo que sale del portal: el aviso del tipo de cambio, el alta de
+        usuarios y los recordatorios.
+      </p>
+    </div>
+
+    <span
+      class="inline-flex h-fit rounded-full px-2.5 py-1 text-xs font-medium"
+      [class]="
+        currentMode() === 'normal'
+          ? 'bg-emerald-50 text-success-600'
+          : currentMode() === 'override'
+            ? 'bg-brand-50 text-warning-600'
+            : 'bg-canvas text-danger-600'
+      "
+    >
+      @switch (currentMode()) {
+        @case ('normal') {
+          Activo: envío normal
+        }
+        @case ('override') {
+          Activo: redirigido a {{ currentOverride() ?? '—' }}
+        }
+        @default {
+          Activo: sin envío
+        }
+      }
+    </span>
+  </div>
+
+  @if (modeError(); as message) {
+    <div class="mb-4"><app-alert variant="error" [message]="message" /></div>
+  }
+
+  @if (modeLoading()) {
+    <div class="animate-pulse space-y-3">
+      <div class="h-16 rounded-md bg-canvas"></div>
+      <div class="h-16 rounded-md bg-canvas"></div>
+      <div class="h-16 rounded-md bg-canvas"></div>
+    </div>
+  } @else {
+    <form [formGroup]="modeForm" (ngSubmit)="saveMode()" class="space-y-5" novalidate>
+      <div class="grid gap-3 sm:grid-cols-3">
+        @for (option of modes; track option.value) {
+          <label
+            class="flex cursor-pointer flex-col gap-1 rounded-md border px-4 py-3 transition-colors"
+            [class]="
+              selectedMode() === option.value
+                ? 'border-brand-500 bg-brand-50/60'
+                : 'border-hairline bg-white hover:border-brand-300'
+            "
+          >
+            <span class="flex items-center gap-2">
+              <input
+                type="radio"
+                name="emailMode"
+                class="h-4 w-4 accent-brand-500"
+                [value]="option.value"
+                [checked]="selectedMode() === option.value"
+                (change)="chooseMode(option.value)"
+              />
+              <span class="text-sm font-semibold text-ink-900">{{ option.label }}</span>
+            </span>
+            <span class="text-xs text-ink-500">{{ option.description }}</span>
+          </label>
+        }
+      </div>
+
+      @if (selectedMode() === 'override') {
+        <div class="max-w-md">
+          <label class="field-label" for="overrideEmail">Correo al que se redirige todo</label>
+          <input
+            id="overrideEmail"
+            type="email"
+            formControlName="overrideEmail"
+            class="field-input"
+            placeholder="pruebas@ittec.mx"
+          />
+          <p class="mt-1 text-xs text-ink-500">
+            El correo llega con el aviso de a quién le hubiera llegado en envío normal.
+          </p>
+        </div>
+      }
+
+      <div class="max-w-md">
+        <label class="field-label" for="emailSupport">Correo de soporte</label>
+        <input
+          id="emailSupport"
+          type="email"
+          formControlName="emailSupport"
+          class="field-input"
+          placeholder="soporte@ittec.mx"
+        />
+        <p class="mt-1 text-xs text-ink-500">
+          Es el contacto que se muestra en los correos que envía el portal.
+        </p>
+      </div>
+
+      @if (modeWarning(); as warning) {
+        <app-alert variant="warning" [message]="warning" />
+      }
+
+      <div class="flex justify-end">
+        <button type="submit" class="btn-primary" [disabled]="modeSaving()">
+          {{ modeSaving() ? 'Guardando…' : 'Guardar modo de envío' }}
+        </button>
+      </div>
+    </form>
+  }
+</section>
+
+<section class="card p-6">
+  <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+    <!-- El contador es la única cifra que importa aquí: una lista larga con
+         todos pausados no manda nada, y sin esto solo se descubre cuando
+         alguien reclama que no le llegó el correo. -->
+    <p class="text-sm text-ink-600">
+      <span class="font-semibold text-ink-900">{{ notifiableCount() }}</span>
+      {{ notifiableCount() === 1 ? 'correo recibirá' : 'correos recibirán' }} el próximo aviso
+      @if (total() > 0) {
+        <span class="text-ink-400">· {{ total() }} en la lista</span>
+      }
+    </p>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-sm text-ink-600" for="perPage">
+        Mostrar
+        <select
+          id="perPage"
+          class="field-input w-20 py-1.5"
+          [value]="perPage()"
+          (change)="changePerPage($any($event.target).value)"
+        >
+          @for (option of perPageOptions; track option) {
+            <option [value]="option">{{ option }}</option>
+          }
+        </select>
+        por página
+      </label>
+
+      <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
+        <input
+          type="checkbox"
+          [checked]="includeDeleted()"
+          (change)="toggleDeleted()"
+          class="h-4 w-4 accent-brand-500"
+        />
+        Mostrar eliminados
+      </label>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="animate-pulse space-y-3">
+      <div class="h-12 rounded-md bg-canvas"></div>
+      <div class="h-12 rounded-md bg-canvas"></div>
+      <div class="h-12 rounded-md bg-canvas"></div>
+    </div>
+  } @else if (rows().length === 0) {
+    <div class="rounded-md border border-dashed border-hairline px-6 py-10 text-center">
+      <p class="text-sm font-medium text-ink-900">Todavía no hay correos en la lista</p>
+      <p class="mt-1 text-sm text-ink-500">
+        Mientras esté vacía, el proceso diario no envía ningún aviso.
+      </p>
+    </div>
+  } @else {
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[32rem] border-collapse text-sm">
+        <thead>
+          <tr class="border-b border-hairline text-left">
+            <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">Correo</th>
+            <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">Estado</th>
+            <th class="pb-3 text-xs font-semibold tracking-wide text-ink-500 uppercase">Alta</th>
+            <th class="pb-3"></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.uuid) {
+            <tr class="border-b border-hairline last:border-0" [class.opacity-60]="row.isDeleted">
+              <td class="py-3 pr-4 font-medium text-ink-900">{{ row.email }}</td>
+              <td class="py-3 pr-4">
+                <span
+                  class="inline-flex rounded-md border px-2.5 py-1 text-xs font-semibold"
+                  [class]="
+                    row.status === 'active'
+                      ? 'border-success-600/30 bg-emerald-50 text-success-600'
+                      : row.status === 'paused'
+                        ? 'border-brand-300 bg-brand-50 text-warning-600'
+                        : 'border-hairline bg-canvas text-ink-500'
+                  "
+                >
+                  {{ row.statusLabel }}
+                </span>
+              </td>
+              <td class="py-3 pr-4 whitespace-nowrap text-ink-500">
+                {{ row.createdAt | date: 'dd/MM/yyyy' }}
+              </td>
+              <td class="py-3">
+                <div class="flex items-center justify-end gap-1">
+                  @if (row.isDeleted) {
+                    <button
+                      type="button"
+                      (click)="confirmRestore(row)"
+                      [disabled]="busyUuid() === row.uuid"
+                      class="rounded-md px-2.5 py-1.5 text-sm font-medium text-brand-700 transition-colors hover:bg-brand-50 disabled:opacity-50"
+                    >
+                      Restaurar
+                    </button>
+                  } @else {
+                    <button
+                      type="button"
+                      (click)="togglePause(row)"
+                      [disabled]="busyUuid() === row.uuid"
+                      [attr.aria-label]="
+                        row.isActive ? 'Pausar ' + row.email : 'Reactivar ' + row.email
+                      "
+                      class="rounded-md px-2.5 py-1.5 text-sm font-medium text-ink-600 transition-colors hover:bg-canvas disabled:opacity-50"
+                    >
+                      {{ row.isActive ? 'Pausar' : 'Reactivar' }}
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="openEdit(row)"
+                      [attr.aria-label]="'Editar ' + row.email"
+                      class="rounded-md p-2 text-ink-500 transition-colors hover:bg-canvas hover:text-brand-700"
+                    >
+                      <app-icon name="edit" [size]="16" />
+                    </button>
+
+                    <button
+                      type="button"
+                      (click)="confirmDelete(row)"
+                      [disabled]="busyUuid() === row.uuid"
+                      [attr.aria-label]="'Eliminar ' + row.email"
+                      class="rounded-md p-2 text-ink-500 transition-colors hover:bg-red-50 hover:text-danger-600 disabled:opacity-50"
+                    >
+                      <app-icon name="trash" [size]="16" />
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    @if (lastPage() > 1) {
+      <div
+        class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-hairline pt-4 text-sm"
+      >
+        <span class="text-ink-500">
+          Página {{ page() }} de {{ lastPage() }} · {{ total() }}
+          {{ total() === 1 ? 'correo' : 'correos' }}
+        </span>
+
+        <div class="flex gap-2">
+          <button
+            type="button"
+            class="btn-ghost px-3 py-1.5"
+            (click)="goToPage(page() - 1)"
+            [disabled]="page() === 1"
+          >
+            Anterior
+          </button>
+          <button
+            type="button"
+            class="btn-ghost px-3 py-1.5"
+            (click)="goToPage(page() + 1)"
+            [disabled]="page() === lastPage()"
+          >
+            Siguiente
+          </button>
+        </div>
+      </div>
+    }
+  }
+</section>
+
+@if (formOpen()) {
+  <app-modal
+    [title]="editingUuid() ? 'Editar correo' : 'Agregar correos'"
+    size="sm"
+    [confirmLabel]="saving() ? 'Guardando…' : 'Guardar'"
+    [confirmDisabled]="saving() || detected().length === 0"
+    (closed)="closeForm()"
+    (confirmed)="submit()"
+  >
+    <form class="space-y-3" (ngSubmit)="submit()" [formGroup]="form">
+      @if (formError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div>
+        <label for="recipient-emails" class="mb-1 block text-sm font-medium text-ink-900">
+          {{ editingUuid() ? 'Correo' : 'Correos' }}
+        </label>
+
+        <!-- textarea y no input: se pega una lista completa de una vez, y en
+             un input de una línea no se ve dónde termina. -->
+        <textarea
+          id="recipient-emails"
+          rows="4"
+          formControlName="emails"
+          (input)="onTyped($any($event.target).value)"
+          autocomplete="off"
+          [placeholder]="
+            editingUuid()
+              ? 'pagos@empresa.mx'
+              : 'pagos@empresa.mx; tesoreria@empresa.mx; direccion@empresa.mx'
+          "
+          class="w-full resize-y rounded-md border border-hairline px-3 py-2.5 font-mono text-sm outline-none focus:border-brand-500"
+        ></textarea>
+
+        @if (!editingUuid()) {
+          <p class="mt-1.5 text-xs text-ink-500">
+            Separe cada correo con
+            <span class="rounded bg-canvas px-1 font-mono font-semibold text-ink-900">;</span>
+            Cada uno se agrega como un registro aparte.
+          </p>
+        }
+      </div>
+
+      <!-- Confirma que el separador se entendió ANTES de guardar. Pegar una
+           lista larga y no saber cuántos se detectaron es donde esto falla en
+           la práctica. -->
+      @if (detected().length > 0) {
+        <div class="rounded-md border border-hairline bg-canvas px-3 py-2.5">
+          <p class="text-xs font-semibold text-ink-600">
+            {{ detected().length }}
+            {{ detected().length === 1 ? 'correo detectado' : 'correos detectados' }}
+          </p>
+
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            @for (email of detected(); track email) {
+              <span
+                class="rounded border border-hairline bg-white px-2 py-0.5 font-mono text-xs text-ink-900"
+              >
+                {{ email }}
+              </span>
+            }
+          </div>
+        </div>
+      }
+    </form>
+  </app-modal>
+}
+
+@if (confirming(); as pending) {
+  <app-modal
+    [title]="pending.title"
+    size="sm"
+    [confirmLabel]="pending.confirmLabel"
+    [confirmVariant]="pending.variant"
+    (closed)="dismissConfirm()"
+    (confirmed)="acceptConfirm()"
+  >
+    <p class="text-sm text-ink-600">{{ pending.message }}</p>
+  </app-modal>
+}

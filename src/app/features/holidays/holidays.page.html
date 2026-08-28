@@ -1,0 +1,323 @@
+<header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-brand-500">Días feriados</h1>
+    <p class="mt-1 max-w-2xl text-sm text-ink-600">
+      Calendario bancario con el que se determina el día hábil siguiente. De aquí sale la fecha a la
+      que se aplica la publicación de Banxico y la ventana de captura manual: si falta un feriado,
+      el tipo de cambio termina fechado en un día inhábil.
+    </p>
+  </div>
+
+  <div class="flex flex-wrap gap-3">
+    <button type="button" class="btn-ghost" (click)="openBulk()">Capturar calendario</button>
+    <button type="button" class="btn-primary" (click)="openCreate()">+ Nuevo día feriado</button>
+  </div>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+<!-- --------------------------------------------------------- cobertura por año -->
+@if (status(); as coverage) {
+  @if (coverage.pendingYear !== null) {
+    <div class="mb-5">
+      <app-alert
+        variant="warning"
+        [message]="'Falta capturar el calendario de ' + coverage.pendingYear + '.'"
+      >
+        <p class="mt-1 text-sm">
+          @if (coverage.reminderActive) {
+            El sistema ya está enviando el recordatorio diario a los usuarios; deja de mandarse en
+            cuanto se registre el primer día.
+          } @else {
+            El recordatorio automático a los usuarios empieza el
+            {{ coverage.reminderStartsOn | date: 'dd/MM/yyyy' }}.
+          }
+        </p>
+      </app-alert>
+    </div>
+  }
+}
+
+<section class="card">
+  <div class="flex flex-wrap items-end justify-between gap-3 border-b border-hairline px-6 py-4">
+    <div>
+      <h2 class="card-title">Calendario {{ year() }}</h2>
+      <p class="mt-1 text-sm text-ink-500">
+        {{ activeCount() }}
+        {{ activeCount() === 1 ? 'día registrado' : 'días registrados' }} · los sábados y domingos
+        ya son inhábiles y no se capturan.
+      </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-4">
+      <label class="flex items-center gap-2 text-sm text-ink-600" for="yearFilter">
+        Año
+        <select
+          id="yearFilter"
+          class="field-input w-28 py-1.5"
+          [value]="year()"
+          (change)="changeYear($any($event.target).value)"
+        >
+          @for (option of years(); track option) {
+            <option [value]="option">{{ option }} ({{ totalOf(option) }})</option>
+          }
+        </select>
+      </label>
+
+      <label class="flex cursor-pointer items-center gap-2 text-sm text-ink-600">
+        <input
+          type="checkbox"
+          class="accent-brand-500"
+          [checked]="includeDeleted()"
+          (change)="toggleDeleted($any($event.target).checked)"
+        />
+        Ver eliminados
+      </label>
+    </div>
+  </div>
+
+  @if (listError(); as message) {
+    <div class="px-6 py-4"><app-alert variant="error" [message]="message" /></div>
+  }
+
+  <div class="overflow-x-auto">
+    <table class="w-full min-w-[720px] text-left text-sm">
+      <thead
+        class="border-b border-hairline bg-canvas text-xs tracking-wide text-ink-600 uppercase"
+      >
+        <tr>
+          <th class="px-6 py-3 font-semibold">Fecha</th>
+          <th class="px-6 py-3 font-semibold">Día</th>
+          <th class="px-6 py-3 font-semibold">Descripción</th>
+          <th class="px-6 py-3 font-semibold">Estado</th>
+          <th class="px-6 py-3 font-semibold">Última modificación</th>
+          <th class="px-6 py-3 text-right font-semibold">Acciones</th>
+        </tr>
+      </thead>
+
+      <tbody class="divide-y divide-hairline">
+        @for (holiday of rows(); track holiday.uuid) {
+          <tr [class.opacity-60]="holiday.isDeleted">
+            <td class="px-6 py-3 text-ink-900">{{ holiday.holidayDate | date: 'dd/MM/yyyy' }}</td>
+            <td class="px-6 py-3 text-ink-500 capitalize">
+              {{ holiday.holidayDate | date: 'EEEE' }}
+            </td>
+            <td class="px-6 py-3 text-ink-700">{{ holiday.description }}</td>
+
+            <td class="px-6 py-3">
+              <span
+                class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                [class]="
+                  holiday.isDeleted ? 'bg-canvas text-ink-500' : 'bg-emerald-50 text-success-600'
+                "
+              >
+                {{ holiday.statusLabel }}
+              </span>
+            </td>
+
+            <td class="px-6 py-3 text-xs text-ink-500">
+              {{ holiday.updatedAt | date: 'dd/MM/yyyy HH:mm' }} h
+            </td>
+
+            <td class="px-6 py-3">
+              <div class="flex justify-end gap-1">
+                @if (holiday.isDeleted) {
+                  <button
+                    type="button"
+                    class="btn-ghost px-2 py-1"
+                    (click)="restore(holiday)"
+                    [disabled]="busyUuid() === holiday.uuid"
+                  >
+                    Restaurar
+                  </button>
+                } @else {
+                  <button
+                    type="button"
+                    class="btn-ghost px-2 py-1"
+                    (click)="openEdit(holiday)"
+                    [disabled]="busyUuid() === holiday.uuid"
+                    aria-label="Editar día feriado"
+                  >
+                    <app-icon name="edit" [size]="16" />
+                  </button>
+                  <button
+                    type="button"
+                    class="btn-ghost px-2 py-1 text-danger-600"
+                    (click)="askDelete(holiday)"
+                    [disabled]="busyUuid() === holiday.uuid"
+                    aria-label="Eliminar día feriado"
+                  >
+                    <app-icon name="trash" [size]="16" />
+                  </button>
+                }
+              </div>
+            </td>
+          </tr>
+        } @empty {
+          <tr>
+            <td colspan="6" class="px-6 py-10 text-center text-ink-500">
+              {{
+                loading()
+                  ? 'Cargando…'
+                  : 'Aún no hay días feriados de ' +
+                    year() +
+                    '. Sin ellos sólo se descartan sábados y domingos.'
+              }}
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ------------------------------------------------------------- alta/edición -->
+@if (formOpen()) {
+  <app-modal
+    [title]="modalTitle()"
+    subtitle="Sólo se admite el año en curso y el siguiente"
+    (closed)="closeForm()"
+    (confirmed)="save()"
+  >
+    <form [formGroup]="form" (ngSubmit)="save()" class="space-y-5" novalidate>
+      @if (formError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div>
+        <label class="field-label" for="holidayDate">Fecha</label>
+        <input
+          id="holidayDate"
+          type="date"
+          formControlName="holidayDate"
+          class="field-input"
+          [class.field-input-invalid]="error('holidayDate')"
+        />
+        @if (error('holidayDate'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+
+      <div>
+        <label class="field-label" for="description">Descripción</label>
+        <input
+          id="description"
+          type="text"
+          maxlength="150"
+          placeholder="Día de la Independencia"
+          formControlName="description"
+          class="field-input"
+          [class.field-input-invalid]="error('description')"
+        />
+        @if (error('description'); as message) {
+          <p class="field-error">{{ message }}</p>
+        }
+      </div>
+    </form>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeForm()">Cancelar</button>
+      <button type="button" class="btn-primary" [disabled]="saving()" (click)="save()">
+        {{ saving() ? 'Guardando…' : 'Guardar día feriado' }}
+      </button>
+    </div>
+  </app-modal>
+}
+
+<!-- ------------------------------------------------------------ captura anual -->
+@if (bulkOpen()) {
+  <app-modal
+    title="Capturar calendario"
+    subtitle="Una línea por día: la fecha en YYYY-MM-DD y la descripción"
+    size="lg"
+    (closed)="closeBulk()"
+    (confirmed)="saveBulk()"
+  >
+    <div class="space-y-4">
+      @if (bulkError(); as message) {
+        <app-alert variant="error" [message]="message" />
+      }
+
+      <div>
+        <label class="field-label" for="bulkText">Días feriados</label>
+        <textarea
+          id="bulkText"
+          rows="10"
+          class="field-input font-mono text-xs"
+          placeholder="2027-01-01, Año nuevo&#10;2027-02-01, Día de la Constitución&#10;2027-03-15, Natalicio de Benito Juárez"
+          [value]="bulkText()"
+          (input)="onBulkTyped($any($event.target).value)"
+        ></textarea>
+        <p class="mt-1 text-xs text-ink-500">
+          Se acepta coma, punto y coma o tabulador como separador; el tabulador es lo que sale al
+          copiar de una hoja de cálculo. Se guarda todo o nada.
+        </p>
+      </div>
+
+      @if (parsed().length > 0) {
+        <div class="rounded-md border border-hairline">
+          <div
+            class="flex items-center justify-between border-b border-hairline bg-canvas px-4 py-2 text-xs text-ink-600"
+          >
+            <span>{{ parsedValid().length }} listos para guardar</span>
+            @if (parsedInvalid().length > 0) {
+              <span class="text-danger-600">{{ parsedInvalid().length }} con problema</span>
+            }
+          </div>
+
+          <ul class="max-h-56 divide-y divide-hairline overflow-y-auto text-sm">
+            @for (line of parsed(); track line.line) {
+              <li class="flex items-start gap-3 px-4 py-2">
+                <span class="w-8 shrink-0 text-xs text-ink-400">{{ line.line }}</span>
+
+                @if (line.error) {
+                  <span class="min-w-0">
+                    <span class="block truncate text-ink-500 line-through">{{ line.raw }}</span>
+                    <span class="text-xs text-danger-600">{{ line.error }}</span>
+                  </span>
+                } @else {
+                  <span class="min-w-0">
+                    <span class="text-ink-900">{{ line.holidayDate | date: 'dd/MM/yyyy' }}</span>
+                    <span class="text-ink-500"> · {{ line.description }}</span>
+                  </span>
+                }
+              </li>
+            }
+          </ul>
+        </div>
+      }
+    </div>
+
+    <div modalFooter class="flex gap-3">
+      <button type="button" class="btn-ghost" (click)="closeBulk()">Cancelar</button>
+      <button
+        type="button"
+        class="btn-primary"
+        [disabled]="bulkSaving() || parsedValid().length === 0"
+        (click)="saveBulk()"
+      >
+        {{ bulkSaving() ? 'Guardando…' : 'Guardar ' + parsedValid().length + ' días' }}
+      </button>
+    </div>
+  </app-modal>
+}
+
+<!-- ------------------------------------------------------------------- baja -->
+@if (deleting(); as holiday) {
+  <app-modal
+    title="Eliminar día feriado"
+    confirmLabel="Eliminar"
+    confirmVariant="danger"
+    (closed)="cancelDelete()"
+    (confirmed)="confirmDelete()"
+  >
+    <p class="text-sm text-ink-600">
+      {{ holiday.holidayDate | date: 'dd/MM/yyyy' }} ({{ holiday.description }}) volverá a contar
+      como día hábil para el tipo de cambio. Puede restaurarlo después.
+    </p>
+  </app-modal>
+}
