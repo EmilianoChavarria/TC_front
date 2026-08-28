@@ -1,5 +1,5 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Observable, tap } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay, tap } from 'rxjs';
 
 import { ApiClient } from '../http/api.client';
 import {
@@ -53,6 +53,9 @@ export class AuthService {
     return (first.charAt(0) + second.charAt(0)).toUpperCase();
   });
 
+  /** Verificación en curso, compartida por todo el que pregunte por la sesión. */
+  private restoring: Observable<boolean> | null = null;
+
   hasRole(...roles: RoleName[]): boolean {
     const role = this._user()?.roleName;
     return role !== undefined && roles.includes(role);
@@ -62,6 +65,34 @@ export class AuthService {
     return this.api
       .post<LoginResponse>('auth/login', credentials)
       .pipe(tap((response) => this.apply(response.user, response.sessionTimeoutMinutes)));
+  }
+
+  /**
+   * Resuelve el estado de la sesión una sola vez.
+   *
+   * ⚠️ La llamada se comparte a propósito. `auth/verify` ROTA el token en cada
+   * respuesta, así que dos verificaciones simultáneas se pisan: la segunda
+   * viaja con la cookie anterior, el backend la rechaza por «sesión no válida»
+   * y la aplicación cierra una sesión que estaba perfectamente viva. Es
+   * exactamente lo que pasaba al recargar la página.
+   */
+  ensureSession(): Observable<boolean> {
+    if (this._status() !== 'unknown') {
+      return of(this.isAuthenticated());
+    }
+
+    this.restoring ??= this.verify().pipe(
+      map(() => true),
+      catchError(() => {
+        this.clear();
+
+        return of(false);
+      }),
+      finalize(() => (this.restoring = null)),
+      shareReplay({ bufferSize: 1, refCount: false }),
+    );
+
+    return this.restoring;
   }
 
   /** Revalida la sesión y renueva el token. Es también el latido de sesión. */

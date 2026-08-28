@@ -47,6 +47,14 @@ const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'o
 export class FluctuationChart {
   readonly points = input.required<FluctuationPoint[]>();
 
+  /**
+   * La línea punteada de la publicación de origen.
+   *
+   * La consulta pública no la recibe —ahí sólo existe el tipo de cambio del
+   * portal— y dibujar una serie vacía dejaría un «—» en el detalle del punto.
+   */
+  readonly showPublished = input(true);
+
   protected readonly hovered = signal<number | null>(null);
 
   /** Avance del trazado, de 0 a 100. */

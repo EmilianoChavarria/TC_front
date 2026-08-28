@@ -1,0 +1,283 @@
+<header class="mb-6 flex flex-wrap items-start justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-bold text-brand-500">Configuración del Sistema</h1>
+    <p class="mt-1 max-w-3xl text-sm text-ink-600">
+      Requisitos mínimos de seguridad para contraseñas, tiempo máximo de inactividad y umbrales de
+      fallos de autenticación.
+    </p>
+  </div>
+
+  <button type="button" class="btn-primary h-fit" [disabled]="saving() || loading()" (click)="save()">
+    {{ saving() ? 'Guardando…' : 'Guardar configuración' }}
+  </button>
+</header>
+
+@if (feedback(); as message) {
+  <div class="mb-5">
+    <app-alert [variant]="message.variant" [message]="message.message" />
+  </div>
+}
+
+@if (loadError(); as message) {
+  <div class="mb-5">
+    <app-alert variant="error" [message]="message" />
+  </div>
+}
+
+@if (formError(); as message) {
+  <div class="mb-5">
+    <app-alert variant="error" [message]="message" />
+  </div>
+}
+
+@if (loading()) {
+  <div class="grid animate-pulse gap-6 lg:grid-cols-2">
+    <div class="h-96 rounded-md bg-canvas"></div>
+    <div class="space-y-6">
+      <div class="h-40 rounded-md bg-canvas"></div>
+      <div class="h-52 rounded-md bg-canvas"></div>
+    </div>
+  </div>
+} @else {
+  <div class="grid items-start gap-6 lg:grid-cols-2">
+    <!-- ------------------------------------------------------- contraseñas -->
+    <section class="card p-6" [formGroup]="passwordForm">
+      <h2 class="text-xs font-semibold tracking-wide text-ink-500 uppercase">Contraseñas</h2>
+      <p class="mt-1 text-sm text-ink-500">Requisitos mínimos de seguridad.</p>
+
+      <!-- Aplican a altas, cambios y restauraciones; a nadie se le invalida la
+           contraseña que ya tiene. Decirlo evita el miedo a dejar fuera a los
+           usuarios al subir la exigencia. -->
+      <p class="mt-3 text-xs text-ink-400">
+        Los cambios aplican a contraseñas nuevas; las vigentes se conservan hasta el siguiente
+        cambio.
+      </p>
+
+      <div class="mt-5 grid gap-4 sm:grid-cols-2">
+        <div>
+          <label class="field-label" for="minLength">Longitud mínima (caracteres)</label>
+          <input
+            id="minLength"
+            type="number"
+            min="6"
+            max="128"
+            formControlName="minLength"
+            class="field-input"
+            [class.field-input-invalid]="error('minLength')"
+          />
+          @if (error('minLength'); as message) {
+            <p class="field-error">{{ message }}</p>
+          }
+        </div>
+
+        <div>
+          <label class="field-label" for="expirationDays">Vigencia de la contraseña (días)</label>
+          <input
+            id="expirationDays"
+            type="number"
+            min="0"
+            max="3650"
+            formControlName="expirationDays"
+            (input)="onExpirationChange($any($event.target).value)"
+            class="field-input"
+            [class.field-input-invalid]="error('expirationDays')"
+          />
+          @if (error('expirationDays'); as message) {
+            <p class="field-error">{{ message }}</p>
+          } @else {
+            <p class="mt-1 text-xs text-ink-500">{{ expirationHint() }}</p>
+          }
+        </div>
+      </div>
+
+      <div class="mt-5 divide-y divide-hairline border-t border-hairline">
+        <label class="flex items-start justify-between gap-4 py-4">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-ink-900">
+              Exigir al menos una letra mayúscula
+            </span>
+            <span class="mt-0.5 block text-xs text-ink-500">
+              Aplica a nuevas contraseñas y restauraciones.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            formControlName="requireUppercase"
+            class="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+          />
+        </label>
+
+        <label class="flex items-start justify-between gap-4 py-4">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-ink-900">
+              Exigir al menos una letra minúscula
+            </span>
+            <span class="mt-0.5 block text-xs text-ink-500">
+              Se valida al momento de la captura.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            formControlName="requireLowercase"
+            class="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+          />
+        </label>
+
+        <label class="flex items-start justify-between gap-4 py-4">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-ink-900">Exigir al menos un número</span>
+            <span class="mt-0.5 block text-xs text-ink-500">
+              Se valida al momento de la captura.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            formControlName="requireNumbers"
+            class="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+          />
+        </label>
+
+        <label class="flex items-start justify-between gap-4 py-4">
+          <span class="min-w-0">
+            <span class="block text-sm font-medium text-ink-900">
+              Exigir al menos un carácter especial
+            </span>
+            <span class="mt-0.5 block text-xs text-ink-500">
+              Sólo cuentan los caracteres de la lista permitida.
+            </span>
+          </span>
+          <input
+            type="checkbox"
+            formControlName="requireSpecialChars"
+            (change)="toggleSpecialChars($any($event.target).checked)"
+            class="mt-0.5 h-4 w-4 shrink-0 accent-brand-500"
+          />
+        </label>
+      </div>
+
+      <!-- La lista es parte del requisito: sin ella, «un carácter especial» no
+           se puede cumplir ni verificar. Se muestra sólo cuando aplica. -->
+      @if (specialCharsEnabled()) {
+        <div class="mt-4">
+          <label class="field-label" for="allowedSpecialChars">
+            Caracteres especiales permitidos
+          </label>
+          <input
+            id="allowedSpecialChars"
+            type="text"
+            formControlName="allowedSpecialChars"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="!#$%&amp;*?"
+            class="field-input font-mono"
+            [class.field-input-invalid]="error('allowedSpecialChars')"
+          />
+          @if (error('allowedSpecialChars'); as message) {
+            <p class="field-error">{{ message }}</p>
+          } @else {
+            <p class="mt-1 text-xs text-ink-500">
+              Escríbalos seguidos, sin separadores. Si se deja vacío se usa la lista por omisión.
+            </p>
+          }
+        </div>
+      }
+    </section>
+
+    <div class="space-y-6" [formGroup]="authForm">
+      <!-- ---------------------------------------------------------- sesión -->
+      <section class="card p-6">
+        <h2 class="text-xs font-semibold tracking-wide text-ink-500 uppercase">Sesión</h2>
+        <p class="mt-1 text-sm text-ink-500">Cierre automático por inactividad.</p>
+
+        <div class="mt-5">
+          <label class="field-label" for="sessionTimeoutMinutes">
+            Tiempo máximo de inactividad (minutos)
+          </label>
+          <input
+            id="sessionTimeoutMinutes"
+            type="number"
+            min="1"
+            max="10080"
+            formControlName="sessionTimeoutMinutes"
+            class="field-input"
+            [class.field-input-invalid]="error('sessionTimeoutMinutes', 'auth')"
+          />
+          @if (error('sessionTimeoutMinutes', 'auth'); as message) {
+            <p class="field-error">{{ message }}</p>
+          } @else {
+            <p class="mt-1 text-xs text-ink-500">
+              Al superarse, la sesión del usuario se cierra automáticamente.
+            </p>
+          }
+        </div>
+      </section>
+
+      <!-- -------------------------------------------------- autenticación -->
+      <section class="card p-6">
+        <h2 class="text-xs font-semibold tracking-wide text-ink-500 uppercase">Autenticación</h2>
+        <p class="mt-1 text-sm text-ink-500">
+          Umbrales de bloqueo en las últimas {{ attemptWindowHours() }} horas.
+        </p>
+
+        <div class="mt-5 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label class="field-label" for="maxUserAttempts">Máximo de fallos por usuario</label>
+            <input
+              id="maxUserAttempts"
+              type="number"
+              min="1"
+              max="1000"
+              formControlName="maxUserAttempts"
+              class="field-input"
+              [class.field-input-invalid]="error('maxUserAttempts', 'auth')"
+            />
+            @if (error('maxUserAttempts', 'auth'); as message) {
+              <p class="field-error">{{ message }}</p>
+            } @else {
+              <p class="mt-1 text-xs text-ink-500">Al alcanzarlo, el usuario se bloquea.</p>
+            }
+          </div>
+
+          <div>
+            <label class="field-label" for="maxIpAttempts">Máximo de fallos por dirección IP</label>
+            <input
+              id="maxIpAttempts"
+              type="number"
+              min="1"
+              max="1000"
+              formControlName="maxIpAttempts"
+              class="field-input"
+              [class.field-input-invalid]="error('maxIpAttempts', 'auth')"
+            />
+            @if (error('maxIpAttempts', 'auth'); as message) {
+              <p class="field-error">{{ message }}</p>
+            } @else {
+              <p class="mt-1 text-xs text-ink-500">Al alcanzarla, la dirección IP se bloquea.</p>
+            }
+          </div>
+        </div>
+
+        <!-- El desbloqueo no se hace aquí: subir el umbral no libera a quien ya
+             quedó bloqueado con el anterior. -->
+        <p class="mt-4 text-xs text-ink-400">
+          Los bloqueos ya aplicados se liberan desde
+          <a class="font-medium text-brand-700 hover:underline" routerLink="/seguridad">
+            Gestión de Seguridad</a
+          >.
+        </p>
+      </section>
+    </div>
+  </div>
+
+  @if (lastChange(); as change) {
+    @if (change.at) {
+      <p class="mt-6 text-sm text-ink-500">
+        Última actualización aplicada
+        @if (change.author) {
+          por {{ change.author }}
+        }
+        · {{ change.at | date: 'dd/MM/yyyy HH:mm' }} h
+      </p>
+    }
+  }
+}

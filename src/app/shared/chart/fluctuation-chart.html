@@ -35,7 +35,8 @@
               />
             }
 
-            <!-- Publicación de Banxico -->
+            <!-- Publicación de origen -->
+            @if (showPublished()) {
             <path
               [attr.d]="publishedPath()"
               fill="none"
@@ -46,6 +47,7 @@
               stroke-linejoin="round"
               vector-effect="non-scaling-stroke"
             />
+            }
 
             <!-- Tipo de cambio vigente -->
             <path
@@ -91,11 +93,13 @@
             [style.transform]="'translateX(' + tooltipShift(point.x) + ')'"
           >
             <p class="text-xs font-semibold text-ink-900">{{ point.date }}</p>
-            <p class="mt-1 text-xs text-ink-500">
-              Publicación Banxico :
-              <span class="text-ink-700">{{ point.publishedRate ?? '—' }}</span>
-            </p>
-            <p class="text-xs text-brand-600">
+            @if (showPublished()) {
+              <p class="mt-1 text-xs text-ink-500">
+                Publicación Banxico :
+                <span class="text-ink-700">{{ point.publishedRate ?? '—' }}</span>
+              </p>
+            }
+            <p class="text-xs text-brand-600" [class.mt-1]="!showPublished()">
               Tipo de Cambio vigente :
               <span class="font-medium">{{ point.effectiveRate ?? '—' }}</span>
             </p>

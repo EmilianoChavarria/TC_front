@@ -35,7 +35,7 @@ const EMAIL_MODES: { value: EmailMode; label: string; description: string }[] = 
   {
     value: 'disabled',
     label: 'No enviar nada',
-    description: 'No sale ningún correo. El intento queda registrado en el log.',
+    description: 'No sale ningún correo.',
   },
 ];
 
