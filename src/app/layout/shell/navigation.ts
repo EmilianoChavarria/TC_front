@@ -49,6 +49,8 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { label: 'Gestión de Usuarios', route: '/usuarios', icon: 'users' },
       { label: 'Correos de notificación', route: '/correos-notificacion', icon: 'mail' },
+      { label: 'Configuración del Sistema', route: '/configuracion-sistema', icon: 'settings' },
+      { label: 'Gestión de Seguridad', route: '/seguridad', icon: 'lock' },
     ],
   },
 ];

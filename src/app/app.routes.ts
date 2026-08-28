@@ -62,6 +62,20 @@ export const routes: Routes = [
           import('./features/notifications/recipients.page').then((m) => m.RecipientsPage),
       },
       {
+        path: 'configuracion-sistema',
+        canActivate: [adminGuard],
+        title: 'Configuración del Sistema · Portal de Tipo de Cambio',
+        loadComponent: () =>
+          import('./features/settings/system-settings.page').then((m) => m.SystemSettingsPage),
+      },
+      {
+        path: 'seguridad',
+        canActivate: [adminGuard],
+        title: 'Gestión de Seguridad · Portal de Tipo de Cambio',
+        loadComponent: () =>
+          import('./features/security/security.page').then((m) => m.SecurityPage),
+      },
+      {
         path: 'mi-cuenta',
         title: 'Mi cuenta · Portal de Tipo de Cambio',
         loadComponent: () => import('./features/account/account.page').then((m) => m.AccountPage),
