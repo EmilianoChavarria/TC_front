@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: '/api',
+  apiUrl: 'https://tc.timken.ittec.mx/notasCreditos_back/public/api',
   sessionWarningMinutes: 2,
 };

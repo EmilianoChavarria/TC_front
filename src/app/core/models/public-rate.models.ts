@@ -18,6 +18,12 @@ export interface PublicRatePoint {
 }
 
 export interface PublicRateHistoryRow extends PublicRatePoint {
+  /**
+   * Factor informativo que le correspondió a ESA fecha, no el vigente hoy: el
+   * registro guarda su propia copia, así que el historial no cambia cuando se
+   * edita el catálogo de factores.
+   */
+  factor: string | null;
   change: PublicRateChange | null;
 }
 
