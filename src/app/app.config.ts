@@ -10,6 +10,7 @@ import {
   provideRouter,
   withComponentInputBinding,
   withEnabledBlockingInitialNavigation,
+  withHashLocation,
 } from '@angular/router';
 
 import { of } from 'rxjs';
@@ -47,7 +48,7 @@ export const appConfig: ApplicationConfig = {
     // primera navegación arranca EN PARALELO con la recuperación de la sesión,
     // los guards se evalúan sin saber todavía quién es el usuario y una recarga
     // de página termina en el login.
-    provideRouter(routes, withEnabledBlockingInitialNavigation(), withComponentInputBinding()),
+    provideRouter(routes, withEnabledBlockingInitialNavigation(), withComponentInputBinding(), withHashLocation()),
     provideHttpClient(withInterceptors([authInterceptor])),
     provideAppInitializer(restoreSession),
   ],
